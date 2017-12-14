@@ -1,4 +1,4 @@
-Panoramix Decryption Mix Network User Interface Design
+Katzenpost Decryption Mix Network User Interface Design
 Yawning Angel
 Claudia Diaz
 David Stainton
@@ -7,7 +7,7 @@ Version 0
 
 Abstract
 
-   This document describes the user interface design of the Panoramix
+   This document describes the user interface design of the Katzenpost
    mix network.
 
 1. Introduction
@@ -82,7 +82,7 @@ Abstract
    key-pairs. The sender identity is specified in the mail header
    field like so:
 
-      X-Panoramix-Sender-Identity-Key: <base64 X25519 key>
+      X-Katzenpost-Sender-Identity-Key: <base64 X25519 key>
 
 Appendix A. References
 
