@@ -486,11 +486,14 @@ Table of Contents
    recent consensus document. The error code field indicates if there
    was a failure in retrieval of the PKI consensus document.
 
-   0x00 - signifies no error condition and SHOULD be accompanied
-          with a valid consensus payload.
+   0x00 - signifies no error condition and SHOULD be accompanied with
+          a valid consensus payload.
 
-   0x01 - signifies an error has occured and the payload will be
-          zero length.
+   0x01 - Consensus not found error. The client should try again
+          later.
+
+   0x02 - Consensus gone error; the consensus will not be available in
+          the future.
 
 7. Future Work
 
