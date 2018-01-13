@@ -510,9 +510,9 @@ Table of Contents
 
    * Choose a better wire protocol?
 
-   * Use the Katzenpost Noise based wire protocol?
+   * Use the Katzenpost Noise based wire protocol instead of http?
 
-   * Choose a better schema language?
+   * Choose a different serialization/schema language?
 
 8. Anonymity Considerations
 
