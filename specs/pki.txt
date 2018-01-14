@@ -31,9 +31,13 @@ Table of Contents
    4. PKI Protocol Data Structures
       4.1 Mix Descriptor Format
       4.2 Directory Format
-   5. PKI Wire Protocol
-      5.1. Retrieving a directory
-      5.2. Publishing a mix descriptor
+   5. PKI Wire Protocols
+      5.1 The HTTP based protocol
+         5.1.1 Retrieving a directory
+         5.1.2. Publishing a mix descriptor
+      5.2 Katzenpost noise based protocol extensions for mix descriptor publication
+         5.2.1 The post_descriptor Command
+         5.2.2 The post_descriptor_status Command
    6. Scalability Considerations
       6.1 Consensus Cacheing
          6.1.1 The get_consensus Command
@@ -409,7 +413,7 @@ Table of Contents
        "Providers" : [],
    }
 
-5. PKI Wire Protocol
+5. PKI Wire Protocols
 
    Two wire protocols are supported, the Katzenpost noise-based
    cryptographic wire protocol and the HTTP based protocol can be used
