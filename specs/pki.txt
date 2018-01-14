@@ -472,8 +472,16 @@ Table of Contents
 
 5.2.2 The post_descriptor_status Command
 
-   The post_descriptor_status command allows mixes to set the status
-   of their descriptor.
+   The post_descriptor_status command is sent in response to a post_descriptor
+   command, and uses the following error codes:
+
+   enum {
+      descriptor_ok(0),
+      descriptor_invalid(1),
+      descriptor_conflict(2),
+      descriptor_forbidden(3),
+   } ErrorCodes;
+
 
 6. Scalability Considerations
 
