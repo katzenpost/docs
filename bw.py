@@ -12,7 +12,7 @@ mbr = .5 * gigabit * s # in bits/second
 #  TODO: consider factors such as overprovisioning, peak demand, ddos
 def scaling_k(noise_signal, message_size, rtt, mix_avg_bandwidth):
     byte = 8
-    return (((1+noise_signal)*payload*byte)/rtt)/(mbr)
+    return (((1+noise_signal)*message_size*byte)/rtt)/(mix_avg_bandwidth)
 
 def consensus_size(num_mixes, num_authorities, size_mix_descriptor, size_signature):
     return num_mixes * size_mix_descriptor + num_authorities * size_signature
