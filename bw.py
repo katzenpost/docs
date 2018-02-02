@@ -105,6 +105,7 @@ for consensus_interval in [60, 600, 60*60*3, 60*60*24]:
                             size_mix_descriptor, size_signature,
                             consensus_interval, message_size, message_frequency,
                             noise_signal)
-                    print "consensus_interval: {} n_clients: {}, n_mixes: {}, bw_ratio: {}, noise: {}".format(consensus_interval, num_clients, num_mixes, network_bandwidth_ratio, noise_signal)
+
+                    print "consensus_interval: {} n_clients: {}, n_mixes: {}, bw_ratio: {}, noise: {}\n message_frequency {} message_size {}".format(consensus_interval, num_clients, int(num_mixes), network_bandwidth_ratio, noise_signal, message_frequency, message_size)
 # amount of bw used for consensus vs network bandwidth
 
