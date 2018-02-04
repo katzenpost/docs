@@ -76,6 +76,8 @@ class MixParameters(object):
             return "%.3f Kbit" % (float(i) / 10**3)
         def mbits(i):
             return "%.3f Mbit" % (float(i) / 10**6)
+        def gbits(i):
+            return "%.3f Gbit" % (float(i) / 10**9)
 
         return fmt.format(self.n_authorities, self.n_clients, self.n_mixes,
                 seconds(self.consensus_time),
@@ -88,7 +90,7 @@ class MixParameters(object):
                 byts(self.desc_size),
                 byts(self.sig_size),
                 self.noise_signal,
-                mbits(network_bandwidth(mp)),
+                gbits(network_bandwidth(mp)),
                 mbits(consensus_bandwidth(mp)),
                 kbits(network_bandwidth(mp) / float(mp.n_clients)),
                 kbits(consensus_overhead),
@@ -96,14 +98,12 @@ class MixParameters(object):
                 )
 
 def consensus_size(mp):
-    n_mixes = mixes_required(mp)
-    return n_mixes * mp.desc_size + mp.n_authorities * mp.sig_size
+    return mp.n_mixes * mp.desc_size + mp.n_authorities * mp.sig_size
 
 def consensus_bandwidth(mp):
-    n_mixes = mixes_required(mp)
-    b  = 2 * n_mixes * mp.desc_size * mp.n_authorities
+    b  = 2 * mp.n_mixes * mp.desc_size * mp.n_authorities
     b += mp.sig_size * mp.n_authorities
-    b += mp.n_clients * n_mixes * mp.desc_size
+    b += mp.n_clients * mp.n_mixes * mp.desc_size
     b += mp.n_clients * mp.sig_size * mp.n_authorities
     return b / mp.consensus_time
 
@@ -129,9 +129,7 @@ def mixes_required(mp):
     return mp.n_clients * client_average_bw(mp) / float(mp.mix_bandwidth)
 
 mp = MixParameters(
-        mix_bandwidth = 42 *10**7, # per mix throughput
-        message_size = 50000,
-        noise_signal = 0,
+        mix_bandwidth = 42 *10**7, # per mix throughput - XXX sample from benchmarks?
         n_authorities=9,
         desc_size=32+32+3*32+10+2, #identity, link, and mix keys for 3 epochs, 10 bytes of addresses
         sig_size=100,
@@ -144,7 +142,7 @@ for c in [60*60*3]: # seconds ; consensus interval.
         mp.noise_signal = n
         for f in [.3, 1, 5, 60, 120, 600]: # seconds ; message frequncy.
             mp.rtt = f
-            for s in [5*10**4]: # number of bytes per message
+            for s in [51200]: # number of bytes per message
                 mp.message_size = s
                 for n in [10**4, 10**5, 10**6, 10**8]: # number of clients
                     mp.n_clients = n
