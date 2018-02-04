@@ -1,66 +1,113 @@
 #!/usr/bin/env python
-s = 1
-gigabit = 10**9
-rtt = .3 * s
-payload = 512 # in bytes
-nsr = 2
-mbr = .5 * gigabit * s # in bits/second
-# find scaling parameter k
-# nsr is noise/signal ratio of cover traffic
-# rtt is average round-trip-time parameter
-# mbr is average mix bandwidth rate
-#  TODO: consider factors such as overprovisioning, peak demand, ddos
-def scaling_k(noise_signal, message_size, rtt, mix_avg_bandwidth):
-    byte = 8
-    return (((1+noise_signal)*message_size*byte)/rtt)/(mix_avg_bandwidth)
 
-def consensus_size(num_mixes, num_authorities, size_mix_descriptor, size_signature):
-    return num_mixes * size_mix_descriptor + num_authorities * size_signature
+class MixParameters(object):
 
-def consensus_bandwidth(num_clients, num_mixes, size_mix_descriptor, num_authorities, size_signature, consensus_interval):
-    b = 2 * num_mixes * size_mix_descriptor * num_authorities
-    b += size_signature * num_authorities
-    b += num_clients * num_mixes * size_mix_descriptor
-    b += num_clients * size_signature * num_authorities
-    return b / consensus_interval
+    # Scaling parameters
+    num_authorities = None
+    num_clients = None
+    num_mixes = None
+    consensus_interval = None
 
-def k_consensus_bandwidth(num_clients, k, size_mix_descriptor, num_authorities, num_mixes, size_signature, consensus_interval):
-    b = 2 * num_clients * k * size_mix_descriptor * num_authorities
-    b += size_signature * num_authorities
-    b += num_clients * k * num_clients * size_mix_descriptor
-    b += num_clients * size_signature * num_authorities
-    return b / consensus_interval
+    # Throughput parameters
+    mix_bandwidth = None
+    rtt = None
 
-# bandwidth channel
-def bwc(message_size, rtt):
-    return payload / rtt
+    # Message parameters
+    message_size = None
+    size_mix_descriptor = None
+    size_signature = None
+
+    # Decoy parameters
+    noise_signal = None
+
+    def __init__(self, **args):
+        # initialize parameters
+        self.num_authorities = args.get('num_authorities')
+        self.num_clients = args.get('num_clients')
+        #self.num_mixes = args.get('num_mixes')
+        self.consensus_interval = args.get('consensus_interval')
+        self.mix_bandwidth = args.get('mix_bandwidth')
+        self.rtt = args.get('rtt')
+        self.message_size = args.get('message_size')
+        self.noise_signal = args.get('noise_signal')
+        self.size_mix_descriptor = args.get('size_mix_descriptor')
+        self.size_signature = args.get('size_signature')
+
+    @property
+    def num_mixes(self):
+        return mixes_required(self)
+
+    def __str__(self):
+
+        fmt = "num_authorities:{}\n"
+        fmt += "num_clients:\t{}\n"
+        fmt += "num_mixes:\t{}\n"
+        fmt += "consensus_interval:\t{}\n"
+        fmt += "mix_bandwidth:\t{}\n"
+        fmt += "rtt:\t\t{}\n"
+        fmt += "message_size:\t{}\n"
+        fmt += "size_mix_descriptor:\t{}\n"
+        fmt += "size_signature:\t{}\n"
+        fmt += "noise_signal:\t{}\n"
+        fmt += "network_bandwidth:\t{}\n"
+        fmt += "consensus_bandwidth:\t{}\n"
+        fmt += "consensus_bandwidth_ratio: {}\n"
+        fmt += "per_client_bandwidth:\t{}\n"
+        fmt += "per_client_consensus_overhead:\t{}\n"
+        fmt += "per_client_channel_bandwidth:\t{}\n"
+
+        consensus_overhead = consensus_bandwidth_ratio(mp) * (network_bandwidth(mp) / mp.num_clients)
+
+        return fmt.format(self.num_authorities, self.num_clients, self.num_mixes,
+                self.consensus_interval, self.mix_bandwidth, self.rtt,
+                self.message_size, self.size_mix_descriptor,
+                self.size_signature, self.noise_signal,
+
+                mbits(network_bandwidth(mp)),
+                mbits(consensus_bandwidth(mp)),
+                consensus_bandwidth_ratio(mp),
+                kbits(network_bandwidth(mp) / float(mp.num_clients)),
+                kbits(consensus_overhead),
+                kbits(client_average_bw(mp) / (1 + mp.noise_signal) - consensus_overhead)
+                )
+
+def kbits(i):
+    return "%.3f Kb/s" % (float(i) / 10**3)
+def mbits(i):
+    return "%.3f Mb/s" % (float(i) / 10**6)
+
+def consensus_size(mp):
+    num_mixes = mixes_required(mp)
+    return num_mixes * mp.size_mix_descriptor + mp.num_authorities * mp.size_signature
+
+def consensus_bandwidth(mp):
+    num_mixes = mixes_required(mp)
+    b  = 2 * num_mixes * mp.size_mix_descriptor * mp.num_authorities
+    b += mp.size_signature * mp.num_authorities
+    b += mp.num_clients * num_mixes * mp.size_mix_descriptor
+    b += mp.num_clients * mp.size_signature * mp.num_authorities
+    return b / mp.consensus_interval
 
 # average bandwidth of all clients
-def cbr(message_size, message_frequency, num_clients, noise_signal):
-    return (1 + noise_signal) * bwc(message_size, message_frequency) * num_clients
+def client_average_bw(mp):
+    byte = 8
+    decoy_overhead = (mp.noise_signal + 1)
+    return decoy_overhead * (mp.message_size * byte / mp.rtt)
 
-# network bandwidth cumulative
-def nbr(num_clients, num_mixes, num_authorities, size_mix_descriptor, size_signature, consensus_interval, message_size,
-        message_frequency, noise_signal): 
-    # consensus bandwidth
-    cbw = consensus_bandwidth(num_clients, num_mixes, size_mix_descriptor, num_authorities, size_signature, consensus_interval)
-    # client bandwidth
-    cbr = cbr(message_size, message_frequency, num_clients, noise_signal)
-    return cbw + cbr
+# network bandwidth 
+def network_bandwidth(mp):
+    # consensus bandwidth in bit/s
+    return consensus_bandwidth(mp) + client_average_bw(mp) * mp.num_clients
 
-# ratio of network bandwidth to consensus bandwidth
-def rnbw(num_clients, num_mixes, num_authorities, size_mix_descriptor, size_signature, consensus_interval, message_size,
-        message_frequency, noise_signal): 
-    # consensus bandwidth
-    cbw = consensus_bandwidth(num_clients, num_mixes, size_mix_descriptor, num_authorities, size_signature, consensus_interval)
-    # client bandwidth
-    return (cbr(message_size, message_frequency, num_clients, noise_signal) / cbw) / (1+noise_signal)
+# ratio consensus bandwidth / network bandwidth
+def consensus_bandwidth_ratio(mp):
+    return consensus_bandwidth(mp)/network_bandwidth(mp)
 
 # number of mixes required 
-def nmbr(message_size, message_frequency, num_clients, noise_signal, mix_avg_bandwidth):
-    k = scaling_k(noise_signal, message_size, message_frequency, mix_avg_bandwidth)
-    clients_per_mix = 1/k
-    return num_clients / clients_per_mix
+def mixes_required(mp):
+    # rtt is message send frequency; how often a client send/receives.
+    # XXX, approx - ignores consensus overhead
+    return mp.num_clients * client_average_bw(mp) / float(mp.mix_bandwidth)
 
 # plot some values for 
 #mbr(
@@ -81,34 +128,34 @@ def nmbr(message_size, message_frequency, num_clients, noise_signal, mix_avg_ban
   #  // try nsr -> 0, 2, 9, 99
 
 #Interesting things to plot
-# number of mix nodes for 1k, 10k, 100k, 1M, 10M 100M, 1B clients:
-# with low latency, short messages
-# medium latency, short messages
-# high latency, large messages
+# The number of mix nodes needed for 1k, 10k, 100k, 1M, 10M 100M, 1B clients.
+# For parameters selected for: 
+#  low latency, short messages
+#  medium latency, short messages
+#  high latency, large messages
 
-# XXX get real values
-num_authorities = 5 # 
-size_mix_descriptor = 100 # yolo
-size_signature = 100
-# Should produce a matrix...
+mp = MixParameters(
+        num_clients = 42000,
+        consensus_interval = 420,
+        mix_bandwidth = .42 *10**9, # per mix
+        rtt = 420,
+        message_size = 42000,
+        noise_signal = 0,
+        num_authorities=5,
+        size_mix_descriptor=100,
+        size_signature=100,
+        ) 
 
-# message_frequency should fit some kind of user experience/privacy expectation
-mix_avg_bandwidth = .5 * 10**9 # 500 mbits @ 50% gig-e
-for consensus_interval in [600,60*60*3]:#[60, 600, 60*60*3]:#, 60*60*24]:
-    for noise_signal in [0, 2, 9]:#, 99]:
-        for message_frequency in [60, 120, 180]: #, 1, 5, 30, 60, 300, 600, 3600]: # seconds
-            for message_size in [10**4]:#512, 1024, 10**4, 10**5]: #, 1024, 50*1024, 10**6, 10**7]:
-                #for num_clients in [10**3,10**4,10**5, 10**6, 10**7, 10**8, 10**9]:
-                #for num_clients in [10**5, 10**6, 10**7, 10**8, 10**9]:
-                for num_clients in [10**6]:
-                    num_mixes = nmbr(message_size, message_frequency, num_clients,
-                            noise_signal, mix_avg_bandwidth)
-    
-                    network_bandwidth_ratio = rnbw(num_clients, num_mixes, num_authorities,
-                            size_mix_descriptor, size_signature,
-                            consensus_interval, message_size, message_frequency,
-                            noise_signal)
-
-                    print "consensus_interval: {} n_clients: {}, n_mixes: {}, bw_ratio: {}, noise: {}\n message_frequency {} message_size {}".format(consensus_interval, num_clients, int(num_mixes), network_bandwidth_ratio, noise_signal, message_frequency, message_size)
+for c in [600,60*60*3]: # seconds ; consensus interval.
+    mp.consensus_interval = c
+    for n in [0, .5, 2, 9]: # noise / signal ratio of decoy traffic.
+        mp.noise_signal = n
+        for f in [60, 120, 180]: # seconds ; message frequncy.
+            mp.rtt = f
+            for s in [10**4, 10**5, 10**6]: # number of bytes per message
+                mp.message_size = s
+                for n in [10**4, 10**5, 10**6, 10**7]: # number of clients
+                    mp.num_clients = n
+                    print mp
 # amount of bw used for consensus vs network bandwidth
 
