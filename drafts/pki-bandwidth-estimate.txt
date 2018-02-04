@@ -1,0 +1,190 @@
+From 
+2.1.1 Directory Authority Server Schedule
+
+   Directory Authority server interactions are conducted according to
+   the following schedule, where T is the beginning of the current epoch.
+
+   T                         - Epoch begins
+
+   T + t_vote_exchange - Vote exchange begins
+
+   T + t_vote_exchange + t_signature_exchange - Tabulation and signature exchange
+
+   T + t_vote_exchange + t_signature_exchange + t_publish_consensus - Publish consensus
+
+// Parametize the consensus schedule:
+
+Let v, si, p denote the duration of time for each period described in the Authority schedule:
+   t_vote_exchange, t_signature_exchange, t_publish_consensus.
+
+Let n, a, c, denote the number of mixes, authorities and clients.
+
+Let d, s, p denote the size of a MixDescriptor, Signature, and Consensus.
+
+i.e. 
+p = (n * d) + (a * s)
+
+Let b_c denote the amount of bandwidth used to distribute the Consensus:
+
+Each Directory Authority collects keys from each of the Mixes:
+// XXX What happens if a minority of Directory Authorities have a MixDescriptor.
+// Do the other Directory Authorities include these keys in the Consensus?
+// Do Mixes send their descriptor to all of the Authorities?
+// What happens if an Authority is unreachable e.g. Network Congestion, etc?
+
+
+Each Mix exchanges a MixDescriptor with each Authority:
+Let b_k denote the bandwidth used to distribute Mix keys:
+
+b_k = n * d * a 
+
+Each Authority exchanges a Vote
+// XXX we assume that a Vote is the ordered list of MixDescriptors with a
+// Signature and ignore any optimizations. 
+
+Let b_v denote the bandwidth used to distribute a Vote between the Authorities.
+Each Authority sends each other Authority a Vote, so for a Authorities:
+a * (a - 1) = a^2 - a
+And a Vote consists of (approximately) the MixDescriptors and a signature.
+(n * d + s) * (a^2 - a)
+b_v = (n * d + s) * (a^2 - a) 
+
+And finally,
+
+Let b_p denote the bandwidth used to distribute the final consensus to the
+Mixes and clients.
+
+b_p = (n * d  + s * a) * c
+
+The total bandwidth used to fetch, vote, and distribute MixDescriptors is
+then:
+
+b_c = b_k + b_v + b_p
+
+    = n * d * a  +  (n * d + s) * (a^2 - a)  +  (n * d + s * a) * c
+
+    = n d a + b_v + b_p
+    = n d a + b_k + s a + b_p
+    = n d a + b_k + s a + ( n d + s a) c
+    = n d a + n d a + s a + ( n d + s a) c
+    = 2 n d a + s a + ( n d + s a) c
+    = 2 n d a + s a + c n d + c s a
+    = 2 n d a + s a + c n d + c s a
+
+// XXX: it might make sense to find an expression for the
+// number of mixes as a ratio to users,
+// i.e.
+
+k = n / c , where k is a knob for tuning the number of mixes proportionally to the number of clients
+ n = k c
+
+b = 2 (c k) d a + s a + c (c k) d + c s a
+b = 2 c k d a + c^2 k d + c s a + s a
+
+// The c^2 k term is interesting.
+// Ideally k -> 1/c for linear scaling, ie, minimize n
+// But this is at the expense of average bandwidth per client
+
+// Now we need to know how to parametize k in terms of Network load
+
+// Consider the amount of bandwidth required to distribute the pki information
+
+Let kr denote the rekeying rate
+kr
+
+// k is the ratio of mixes to clients.
+
+// clients per mix: k^-1
+
+// XXX use proper parameter names
+Let sm denote the size of a message
+
+Let fm denote the frequency of sending a message
+
+And cbr denote the client average bandwidth rate
+
+cbr = sm fm * c
+
+Let mbr denote the mix average bandwidth rate
+Let nbr denote the network average bandwdith rate
+
+nbr = cbr + kr b
+
+// XXX how do we model mbr accurately?
+mbr = nbr / n
+
+// clients = number of mixes * clients per mix = n/k
+nbr = (n/k) * cbr
+
+k nbr = n cbr
+
+k = n cbr / nbr
+
+// Set up the equation in terms of mix average bandwidth
+nbr = n mbr
+
+n mbr = (n/k) cbr
+mbr = ((n/k) cbr)n^-1
+mbr = cbr/k
+// solve for a value of mbr that seems realistic
+Let mbr be .5 GB/s
+
+// Now pick a value for cbr :)
+// XXX: assume client needs a covert channel of
+// bandwith
+Let bc = capacity required for covert channel
+
+// q theory for bandwidth = rtt * payload ?
+bc = payload_size / rtt
+
+  // experimental values:
+  // try rtt -> 300 ms, 1 s, ..., 600 s
+  // for payload_size -> 512B, 1KB, ..., 1MB
+  // number of clients -> 5K, 10K, ..., 16 M // ha
+  bc = 512 / .3 // low latency, short messages
+  bc = 512 / 5 // med latency, short messages
+  bc = 5M / 600 // high latency, large messages
+  
+// XXX How much cover traffic is needed to provide
+// how much uncertainty? How are these units
+// defined?
+// bandwith cover required
+// nsr = ratio noise / signal
+  // experimental values
+  // try nsr -> idgaf, 2, 9, 99
+cbr = nsr * bc
+mbr = cbr / k
+
+solve for k
+mbr = (nsr * bc) / k
+k = (nsr * bc) / mbr
+
+// an example with an assumed mix average bandwidth rate at .5GB
+// and bc = 512b/.3s, nsr = 2
+k = (2 * 512b/.3) / .5*10^9b
+clients per mix = 1 / k 
+
+Interesting things to plot
+	number of mix nodes for 5k, 10k, 100k, 1M, 16M clients:
+	amount of bw used for consensus vs network bandwidth
+
+Each Authority downloads new MixDescriptors from the other Authorities.
+
+
+available for retreival. Upon receiving a new vote, the authority
+examines it for new descriptors and fetches them from that
+// XXX 
+
+Each Directory Authority exchanges 
+
+b = p * (n + a + c) 
+
+// XXX What Documents are in the pki that Authorities vote on?
+// XXX What number of clients, mixes, authorities are expected to be supported with
+// the current parameters? 
+
+Let 
+
+   
+
+
