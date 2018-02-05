@@ -129,7 +129,7 @@ def mixes_required(mp):
     return mp.n_clients * client_average_bw(mp) / float(mp.mix_bandwidth)
 
 mp = MixParameters(
-        mix_bandwidth = 42 *10**7, # per mix throughput - XXX sample from benchmarks?
+        mix_bandwidth = 5 *10**8, # per mix throughput - XXX sample from benchmarks?
         n_authorities=9,
         desc_size=32+32+3*32+10+2, #identity, link, and mix keys for 3 epochs, 10 bytes of addresses
         sig_size=64,
