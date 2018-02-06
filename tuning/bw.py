@@ -10,7 +10,7 @@ class MixParameters(object):
 
     # Throughput parameters
     mix_bandwidth = None
-    rtt = None
+    message_frequency = None
 
     # Message parameters
     message_size = None
@@ -27,7 +27,7 @@ class MixParameters(object):
         #self.num_mixes = args.get('num_mixes')
         self.consensus_time = args.get('consensus_time')
         self.mix_bandwidth = args.get('mix_bandwidth')
-        self.rtt = args.get('rtt')
+        self.message_frequency = args.get('message_frequency')
         self.message_size = args.get('message_size')
         self.noise_signal = args.get('noise_signal')
         self.desc_size = args.get('desc_size')
@@ -44,7 +44,7 @@ class MixParameters(object):
         fmt += "n_mixes:\t{}\n"
         fmt += "consensus_time:\t{}\n"
         fmt += "mix_bandwidth:\t{}\n"
-        fmt += "rtt:\t\t{}\n"
+        fmt += "message_frequency:\t\t{}\n"
         fmt += "message_size:\t{}\n"
         fmt += "consensus_size:\t{}\n"
         fmt += "consensus_mb:\t{}\n"
@@ -82,7 +82,7 @@ class MixParameters(object):
         return fmt.format(self.n_authorities, self.n_clients, self.n_mixes,
                 seconds(self.consensus_time),
                 mbits(self.mix_bandwidth),
-                seconds(self.rtt),
+                seconds(self.message_frequency),
                 kbyte(self.message_size),
                 kbyte(consensus_size(mp)),
                 gbyte(consensus_size(mp) * mp.n_clients),
@@ -111,7 +111,7 @@ def consensus_bandwidth(mp):
 def client_average_bw(mp):
     byte = 8
     decoy_overhead = (mp.noise_signal + 1)
-    return decoy_overhead * (mp.message_size * byte / mp.rtt)
+    return decoy_overhead * (mp.message_size * byte / mp.message_frequency)
 
 # network bandwidth
 def network_bandwidth(mp):
@@ -124,26 +124,25 @@ def consensus_bandwidth_ratio(mp):
 
 # number of mixes required
 def mixes_required(mp):
-    # rtt is message send frequency; how often a client send/receives.
     # XXX, approx - ignores consensus overhead
     return mp.n_clients * client_average_bw(mp) / float(mp.mix_bandwidth)
 
+# Example:
 mp = MixParameters(
-        mix_bandwidth = 5 *10**8, # per mix throughput - XXX sample from benchmarks?
+        # per mix bandwidth. assume mix can handle 1Gbps line rate at peak and want 50% load
+        mix_bandwidth = 5*10**8,
+        consensus_time = 60*60*3,
         n_authorities=9,
-        desc_size=32+32+3*32+10+2, #identity, link, and mix keys for 3 epochs, 10 bytes of addresses
+        message_frequency=10,
+        message_size=51200,
+        #identity, link, and mix keys for 3 epochs, 10 bytes of addresses, and 2 bytes from field
+        desc_size=32+32+3*32+10+2,
         sig_size=64,
         )
 
 # XXX pass by argument or config
-for c in [60*60*3]: # seconds ; consensus interval.
-    mp.consensus_time = c
-    for n in [0, .5, 2, 9]: # noise / signal ratio of decoy traffic.
-        mp.noise_signal = n
-        for f in [.3, 1, 5, 60, 120, 600]: # seconds ; message frequncy.
-            mp.rtt = f
-            for s in [51200]: # number of bytes per message
-                mp.message_size = s
-                for n in [10**4, 10**5, 10**6, 10**8]: # number of clients
-                    mp.n_clients = n
-                    print mp
+for n in [0, .5, 2, 9]: # noise / signal ratio of decoy traffic.
+    mp.noise_signal = n
+    for n in [10**4, 10**5, 10**6, 10**8]: # number of clients
+        mp.n_clients = n
+        print mp
