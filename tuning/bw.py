@@ -62,8 +62,6 @@ class MixParameters(object):
         fmt += "per_client_consensus_overhead:\t{}\n"
         fmt += "per_client_channel_bandwidth:\t{}\n"
 
-        consensus_overhead = consensus_bandwidth_ratio(self) * (network_bandwidth(self) / self.n_clients)
-
         def seconds(i):
             """ format i as seconds """
             return "%.3f s" % float(i)
@@ -97,50 +95,65 @@ class MixParameters(object):
                           mbits(self.mix_bandwidth),
                           seconds(self.message_frequency),
                           kbyte(self.message_size),
-                          kbyte(consensus_size(self)),
-                          gbyte(consensus_size(self) * self.n_clients),
-                          gbyte(network_bandwidth(self)),
+                          kbyte(self.consensus_size),
+                          gbyte(self.consensus_size * self.n_clients),
+                          gbyte(self.network_bandwidth),
                           byts(self.desc_size),
                           byts(self.sig_size),
                           self.noise_signal,
-                          gbits(network_bandwidth(self)),
-                          mbits(consensus_bandwidth(self)),
-                          kbits(network_bandwidth(self) / float(self.n_clients)),
-                          kbits(consensus_overhead),
-                          kbits(client_average_bw(self) / (1 + self.noise_signal) - consensus_overhead))
+                          gbits(self.network_bandwidth),
+                          mbits(self.consensus_bandwidth),
+                          kbits(self.network_bandwidth / float(self.n_clients)),
+                          kbits(self.consensus_overhead),
+                          kbits(self.client_average_bw /
+                                (1 + self.noise_signal) - self.consensus_overhead))
 
-def consensus_size(mp):
-    return mp.n_mixes * mp.desc_size + mp.n_authorities * mp.sig_size
+    @property
+    def client_average_bw(self):
+        """ Returns the average bitrate of a mix client in bits/second """
+        byte = 8
+        decoy_overhead = (self.noise_signal + 1)
+        return decoy_overhead * (self.message_size * byte / self.message_frequency)
 
-def consensus_bandwidth(mp):
-    b  = 2 * mp.n_mixes * mp.desc_size * mp.n_authorities
-    b += mp.sig_size * mp.n_authorities
-    b += mp.n_clients * mp.n_mixes * mp.desc_size
-    b += mp.n_clients * mp.sig_size * mp.n_authorities
-    return b / mp.consensus_time
+    @property
+    def consensus_bandwidth(self):
+        """ Returns the bitrate consensus computation and distribution requires in bits/second """
+        c_bw = 2 * self.n_mixes * self.desc_size * self.n_authorities
+        c_bw += self.sig_size * self.n_authorities
+        c_bw += self.n_clients * self.n_mixes * self.desc_size
+        c_bw += self.n_clients * self.sig_size * self.n_authorities
+        return c_bw / self.consensus_time
 
-# average bandwidth of all clients
-def client_average_bw(mp):
-    byte = 8
-    decoy_overhead = (mp.noise_signal + 1)
-    return decoy_overhead * (mp.message_size * byte / mp.message_frequency)
+    @property
+    def consensus_bandwidth_ratio(self):
+        """ Returns the ratio of consensus bandwidth to network bandwidth as a whole """
+        return self.consensus_bandwidth/self.network_bandwidth
 
-# network bandwidth
-def network_bandwidth(mp):
-    # consensus bandwidth in bit/s
-    return consensus_bandwidth(mp) + client_average_bw(mp) * mp.n_clients
+    @property
+    def consensus_overhead(self):
+        """ Returns the bandwidth per client used for distributing the consensus in bits/second """
+        return self.consensus_bandwidth_ratio *\
+                (self.network_bandwidth / self.n_clients)
 
-# ratio consensus bandwidth / network bandwidth
-def consensus_bandwidth_ratio(mp):
-    return consensus_bandwidth(mp)/network_bandwidth(mp)
+    @property
+    def consensus_size(self):
+        """ Returns the size, in bytes, of the consensus document """
+        return self.n_mixes * self.desc_size + self.n_authorities * self.sig_size
 
-# number of mixes required
-def mixes_required(mp):
-    # XXX, approx - ignores consensus overhead
-    return mp.n_clients * client_average_bw(mp) / float(mp.mix_bandwidth)
+    @property
+    def network_bandwidth(self):
+        """ Returns the network total bandwidth in bits/second """
+        # consensus bandwidth in bit/s
+        return self.consensus_bandwidth + self.client_average_bw * self.n_clients
 
-# Example:
-p = MixParameters(
+    @property
+    def mixes_required(self):
+        """ Returns an approximate number of mixes needed """
+        # XXX, approx - ignores consensus overhead
+        return self.n_clients * self.client_average_bw / float(self.mix_bandwidth)
+
+# Example
+mix_params = MixParameters(
     # per mix bandwidth. assume mix can handle 1Gbps line rate at peak and want 50% load
     mix_bandwidth=5*10**8,
     consensus_time=60*60*3,
@@ -154,8 +167,8 @@ p = MixParameters(
     )
 
 # XXX pass by argument or config
-for n in [0, .5, 2, 9]: # noise / signal ratio of decoy traffic.
-    p.noise_signal = n
-    for n in [10**4, 10**5, 10**6, 10**8]: # number of clients
-        p.n_clients = n
-        print p
+for noise in [0, .5, 2, 9]: # noise / signal ratio of decoy traffic.
+    mix_params.noise_signal = noise
+    for n_client in [10**4, 10**5, 10**6, 10**8]: # number of clients
+        mix_params.n_clients = n_client
+        print mix_params
