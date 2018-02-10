@@ -1,128 +1,201 @@
-From 
-2.1.1 Directory Authority Server Schedule
+Katzenpost Mix Network Bandwidth Estimation
 
-   Directory Authority server interactions are conducted according to
-   the following schedule, where T is the beginning of the current epoch.
+Version 0
 
-   T                         - Epoch begins
+Abstract
 
-   T + t_vote_exchange - Vote exchange begins
+   This document describes the relationships between mix parameters and
+   bandwidth used, and is intended to be helpful for tuning mixes and
+   identifying where scaling limitations may exist.
 
-   T + t_vote_exchange + t_signature_exchange - Tabulation and signature exchange
+Table of Contents
 
-   T + t_vote_exchange + t_signature_exchange + t_publish_consensus - Publish consensus
+  1. Introduction
+  2. PKI Bandwidth estimation
+     2.1 Descriptor exchange
+     2.2 Vote exchange
+     2.3 Consensus exchange
+  3. Analysis
+  4. Anonymity Considerations
+  5. Security Considerations
+  Appendix A. References
 
-// Parametize the consensus schedule:
+1. Introduction
 
-Let v, si, p denote the duration of time for each period described in the Authority schedule:
-   t_vote_exchange, t_signature_exchange, t_publish_consensus.
+   The Katzenpost Public Key Infrastructure (PKI) specification document
+   details the process by which a PKI document is collectively created
+   in a voting process that occurs between a set of "Directory Authorities."
+   This system is inspired by the Tor Directory Authority system and is very
+   similar.
 
+   This means that our consensus document is distributed routinely, and
+   contains at least one new mix key for each mix that will be present in the
+   next consensus.
+
+   A multi-signatured "Consensus" document that describes the topology of the
+   network, and the cryptographic keys in use is produced on a regular schedule
+   as described in the pki specification. There are three distinct steps:
+
+   1. Collect the keys from providers, mixes, etc
+   2. Exchange a signed copy of these observations with the other voting authorities
+   3. Produce and publish a multi-signature document of the observations.
+
+
+2. PKI Bandwidth Estimation
+
+// XXX we forgot to count providers here!!
 Let n, a, c, denote the number of mixes, authorities and clients.
+Let d, s, p denote the size (in bytes) of a MixDescriptor, Signature, and Consensus.
 
-Let d, s, p denote the size of a MixDescriptor, Signature, and Consensus.
-
-i.e. 
+e.g.
 p = (n * d) + (a * s)
 
-Let b_c denote the amount of bandwidth used to distribute the Consensus:
+Let b_c denote the amount of bytes used to distribute the Consensus.
 
-Each Directory Authority collects keys from each of the Mixes:
-// XXX What happens if a minority of Directory Authorities have a MixDescriptor.
-// Do the other Directory Authorities include these keys in the Consensus?
-// Do Mixes send their descriptor to all of the Authorities?
-// What happens if an Authority is unreachable e.g. Network Congestion, etc?
+2.1 Descriptor exchange
 
+  Each Mix exchanges a MixDescriptor with each Authority:
+  Let b_k denote the bytes used to distribute Mix keys:
 
-Each Mix exchanges a MixDescriptor with each Authority:
-Let b_k denote the bandwidth used to distribute Mix keys:
+  b_k = n * d * a
 
-b_k = n * d * a 
+2.2 Vote exchange
 
-Each Authority exchanges a Vote
-// XXX we assume that a Vote is the ordered list of MixDescriptors with a
-// Signature and ignore any optimizations. 
+  Each Authority exchanges a Vote with every other Authority:
 
-Let b_v denote the bandwidth used to distribute a Vote between the Authorities.
-Each Authority sends each other Authority a Vote, so for a Authorities:
-a * (a - 1) = a^2 - a
-And a Vote consists of (approximately) the MixDescriptors and a signature.
-(n * d + s) * (a^2 - a)
-b_v = (n * d + s) * (a^2 - a) 
+  // XXX we assume that a Vote is the ordered list of MixDescriptors with a
+  // Signature and ignore any optimizations. i.e. we assume the whole descriptor
+  // with all keys is published each epoch, and not a differential update.
+  // This seems a reasonable assumption for now.
 
-b_v = a^2 * d * n + a^2 *s - a * d * n - a * s // thanks wolfram alpha
+  Let b_v denote the bytes used to distribute a Vote between the Authorities.
+  Each Authority sends each other Authority a Vote, so for a Authorities, the
+  number of Votes sent each epoch is:
 
-And finally,
+    a * (a - 1) = a^2 - a
 
-Let b_p denote the bandwidth used to distribute the final consensus to the
-Mixes and clients.
+  And a Vote consists of (approximately) the MixDescriptors and a signature,
+  so the amount of bytes spent voting is given by:
 
-b_p = (n * d  + s * a) * c
+    b_v = (n * d + s) * (a^2 - a)
 
-The total bandwidth used to fetch, vote, and distribute MixDescriptors is
-then:
+    b_v = a^2 * d * n + a^2 * s - a * d * n - a * s
 
-b_c = b_k + b_v + b_p
+2.3 Consensus exchange
 
-    = n * d * a  +  (n * d + s) * (a^2 - a)  +  (n * d + s * a) * c
-    ... thanks wolfram alpha
-    = a^2 * d * n + a^2 * s + a * c * s - a * s + c * d * n
+  Let b_p denote the bytes used to distribute the final consensus to the
+  Mixes and clients.
 
-Let k be defined as the ratio of mixes to clients, n / c:
+    b_p = (n * d + s * a) * c
+
+  The total bytes used to fetch, vote, and distribute MixDescriptors is
+  then:
+
+    b_c = b_k + b_v + b_p
+
+        = n * d * a  +  (n * d + s) * (a^2 - a)  +  (n * d + s * a) * c
+
+        = a^2 * d * n + a^2 * s + a * c * s - a * s + c * d * n
+
+  Note that this quantity is in units of bytes, for convenience.
+
+  The bandwidth (bits/second) used to distribute the consensus is then:
+
+    8 * b_p / epoch_period
+
+  The average bandwidth each client will use per consensus period is then:
+
+    8 * b_p / (c * epoch_period)
+
+  // XXX clients will need the consensus, so the average bandwidth over
+  // the epoch period isn't really a good estimate for peak bandwidth
+  // required. (but this is the providers problem, as the consensus will
+  // be served to the clients by their provider)
+  // We might say that clients should have obtained a valid
+  // copy of the consensus by a certain deadline, however.
+
+Analysis
+
+Let k be defined as the ratio of mixes to clients:
+
+// XXX: Add section/notes on anonymity considerations.
+// in particular, anonymity ought to increase as anonymity set
+// gets bigger, ie somehow inversely proportional to k.
 
 k = n / c
-
+ or
 n = c * k
 
-or, 
+Then, substituting for n:
 
-b_c = a^2 * c * d * k a^2 * s + a * c * s - a * s + c^2 * d * k
+  b_c = a^2 * c * d * k a^2 * s + a * c * s - a * s + c^2 * d * k
 
-for c >> a (i.e. 9 authorities and 10^6 clients)
+For values of c >> a (i.e. 9 authorities and 10^6 clients)
 
-b_c ~ a * c * s - a * s + c^2 * d * k
-b_c ~ c^2 * d * k
+  b_c ~ a * c * s - a * s + c^2 * d * k
 
-The dominant term is clearly c^2 * d * k, and scaling is limited by the factor 'k' - how many clients a single mix can handle.
+  b_c ~ c^2 * d * k
+
+The dominant term is clearly c^2 * d * k, and scaling is limited by the factor
+'k'.  k is just the ratio n / c, which is determined by mix bandwidth
+rate and the client bandwidth rate required given the supplied parameters.
+// XXX assumes that aside from the consensus process, the network can be scaled
+// linearly by just adding more mixes proportionally to users.
+
+If the ratio of consensus distribution bandwidth to network overall bandwidth
+is plotted as a function of the number of clients, eventually consensus bandwidth
+will consume more bandwidth than the client is using for communication.
+consensus bandwidth / (consensus bandwidth + client bandwidth)
+
+// XXX I think someone performed a similar analysis for the Tor consensus
+// while evaluating scaling constraints. Link it here.
+
+// XXX Note that client bandwidth usage will likely follow diurnal pattern
+// assuming that clients are not online constantly.
+// This seems a reasonable assumption.
+// XXX Assumes the network will be provisioned with sufficient capacity
+// without adding additional mixes during the day.
+// I don't know if this is a reasonable assumption.
+// Maybe it makes sense to try and keep the number of clients per mix constant
+// by taking mixes online/offline. Anonymity analysis? Well obviously this
+// could leak the approximate numbers of users of the network, but the
+// alternative is that less client traffic is available for mixing with at
+// each mix.
 
 
-We use here k, the ratio of mixes to users as a scaling factor we can estimate from benchmarks.
+// Consider the bandwidth fraction (of total) used to distribute the pki information:
 
-k = n / c , where k is a knob for tuning the number of mixes proportionally to the number of clients
- n = k c
-
-
-// Consider the amount of bandwidth required to distribute the pki information
-
-Let kr denote the rekeying rate
-kr
-
-// k is the ratio of mixes to clients.
-
-// clients per mix: k^-1
+Let kr denote the rate at which the consensus is rotated.
+kr = 1 / epoch_period
 
 // XXX use proper parameter names
 Let sm denote the size of a message
 
-Let fm denote the frequency of sending a message
+Let l_p denote the frequency of sending a message (LAMBDA_P)
 
-And cbr denote the client average bandwidth rate
+And cbr denote the client average bandwidth rate (for all clients in the network)
 
-cbr = sm fm * c
+cbr = sm * l_p * c
 
 Let mbr denote the mix average bandwidth rate
-Let nbr denote the network average bandwdith rate
+Let nbr denote the network average bandwidth rate (for all traffic on the network)
 
-nbr = cbr + kr b
+nbr = cbr + kr * b_c
 
 // XXX how do we model mbr accurately?
+// XXX - I think I am making a mistake here, and the bandwidth of the network
+// is constrained by the topology of the network - ie the network bandwidth
+// is limited by the width of the strata - how many mixes / number of strata
+// so this should probably be another parameter...
 mbr = nbr / n
 
-// clients = number of mixes * clients per mix = n/k
-nbr = (n/k) * cbr
+// substituting c = n / k
+nbr = cbr + kr b_c
+    = sm * l_p * (n / k) + kr b_c
 
-k nbr = n cbr
-
-k = n cbr / nbr
+// XXX: idea is to pick particular values for sm, l_p, and other parameters as
+// suggested by the intended application, and then plot dependent variables, solve
+// with additional constraints, etc.
 
 // Set up the equation in terms of mix average bandwidth
 nbr = n mbr
@@ -130,57 +203,50 @@ nbr = n mbr
 n mbr = (n/k) cbr
 mbr = ((n/k) cbr)n^-1
 mbr = cbr/k
+
 // solve for a value of mbr that seems realistic
+// XXX: just assumes that mixes can forward at line rate (1Gb/s) and
+// we are going to pick a utilization factor of 50% for this estimation.
+
 Let mbr be .5 GB/s
 
 // Now pick a value for cbr :)
-// XXX: assume client needs a covert channel of
-// bandwith
+// XXX: assumes client has specific bandwidth needs that we want to guarantee
+// and that cover traffic will be some multiple of this value.
+// XXX: but we need a better understanding of how to model the uncertainty
+// provided by cover traffic. Here we're just saying that cover traffic
+// is some multiple of a chosen capacity required.
 Let bc = bandwidth capacity required for communication
 
-// q theory for bandwidth = rtt * payload ?
-// we know that clients transmit with frequency fm (seconds)
-// so the required bandwidth per client is message_size / message_frequency
-bc = payload_size / fm
+// we know that clients transmit with frequency l_p (seconds)
+// so the required bandwidth per client is message_size / l_p
+bc = message_size / l_p
 
 // XXX How much cover traffic is needed to provide
-// how much uncertainty? what ratio of loop to drop cover traffic should be used, and why. what is the cost of a loop vs a drop?
+// how much uncertainty?
+// XXX what ratio of loop to drop cover traffic should be used, and why.
+// XXX what is the (bandwidth) cost of a loop vs a drop?
 // for now we just use a parameter that is the ratio of cover traffic to messaging traffic.
 // nsr = ratio noise / signal
 // network client bandwidth  = noise-to-signal * bandwidth per client
-cbr = nsr * bcl
+
+cbr = nsr * bc
 mbr = cbr / k
 
-solve for k
+solve for k, given mbr and bc
 mbr = (nsr * bc) / k
 k = (nsr * bc) / mbr
 
 // an example with an assumed mix average bandwidth rate at .5GB
 // and bc = 512b/.3s, nsr = 2
 k = (2 * 512b/.3) / .5*10^9b
-clients per mix = 1 / k 
+clients per mix = 1 / k
 
-Interesting things to plot
-	number of mix nodes for 5k, 10k, 100k, 1M, 16M clients:
-	amount of bw used for consensus vs network bandwidth
-
-Each Authority downloads new MixDescriptors from the other Authorities.
+Interesting things to plot ( see python script )
+  number of mix nodes required for varying numbers of clients, or message sizes.
+  the consensus bandwidth ratio as a function of number of clients
 
 
-available for retreival. Upon receiving a new vote, the authority
-examines it for new descriptors and fetches them from that
-// XXX 
-
-Each Directory Authority exchanges 
-
-b = p * (n + a + c) 
-
-// XXX What Documents are in the pki that Authorities vote on?
-// XXX What number of clients, mixes, authorities are expected to be supported with
-// the current parameters? 
-
-Let 
-
-   
-
-
+Appendix A.
+# XXX fixme.
+# at least add a citation to the pki document and the tor consensus scalability research
