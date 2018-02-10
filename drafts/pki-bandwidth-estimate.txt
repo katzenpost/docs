@@ -49,6 +49,8 @@ And a Vote consists of (approximately) the MixDescriptors and a signature.
 (n * d + s) * (a^2 - a)
 b_v = (n * d + s) * (a^2 - a) 
 
+b_v = a^2 * d * n + a^2 *s - a * d * n - a * s // thanks wolfram alpha
+
 And finally,
 
 Let b_p denote the bandwidth used to distribute the final consensus to the
@@ -62,30 +64,32 @@ then:
 b_c = b_k + b_v + b_p
 
     = n * d * a  +  (n * d + s) * (a^2 - a)  +  (n * d + s * a) * c
+    ... thanks wolfram alpha
+    = a^2 * d * n + a^2 * s + a * c * s - a * s + c * d * n
 
-    = n d a + b_v + b_p
-    = n d a + b_k + s a + b_p
-    = n d a + b_k + s a + ( n d + s a) c
-    = n d a + n d a + s a + ( n d + s a) c
-    = 2 n d a + s a + ( n d + s a) c
-    = 2 n d a + s a + c n d + c s a
-    = 2 n d a + s a + c n d + c s a
+Let k be defined as the ratio of mixes to clients, n / c:
 
-// XXX: it might make sense to find an expression for the
-// number of mixes as a ratio to users,
-// i.e.
+k = n / c
+
+n = c * k
+
+or, 
+
+b_c = a^2 * c * d * k a^2 * s + a * c * s - a * s + c^2 * d * k
+
+for c >> a (i.e. 9 authorities and 10^6 clients)
+
+b_c ~ a * c * s - a * s + c^2 * d * k
+b_c ~ c^2 * d * k
+
+The dominant term is clearly c^2 * d * k, and scaling is limited by the factor 'k' - how many clients a single mix can handle.
+
+
+We use here k, the ratio of mixes to users as a scaling factor we can estimate from benchmarks.
 
 k = n / c , where k is a knob for tuning the number of mixes proportionally to the number of clients
  n = k c
 
-b = 2 (c k) d a + s a + c (c k) d + c s a
-b = 2 c k d a + c^2 k d + c s a + s a
-
-// The c^2 k term is interesting.
-// Ideally k -> 1/c for linear scaling, ie, minimize n
-// But this is at the expense of average bandwidth per client
-
-// Now we need to know how to parametize k in terms of Network load
 
 // Consider the amount of bandwidth required to distribute the pki information
 
@@ -132,27 +136,19 @@ Let mbr be .5 GB/s
 // Now pick a value for cbr :)
 // XXX: assume client needs a covert channel of
 // bandwith
-Let bc = capacity required for covert channel
+Let bc = bandwidth capacity required for communication
 
 // q theory for bandwidth = rtt * payload ?
-bc = payload_size / rtt
+// we know that clients transmit with frequency fm (seconds)
+// so the required bandwidth per client is message_size / message_frequency
+bc = payload_size / fm
 
-  // experimental values:
-  // try rtt -> 300 ms, 1 s, ..., 600 s
-  // for payload_size -> 512B, 1KB, ..., 1MB
-  // number of clients -> 5K, 10K, ..., 16 M // ha
-  bc = 512 / .3 // low latency, short messages
-  bc = 512 / 5 // med latency, short messages
-  bc = 5M / 600 // high latency, large messages
-  
 // XXX How much cover traffic is needed to provide
-// how much uncertainty? How are these units
-// defined?
-// bandwith cover required
+// how much uncertainty? what ratio of loop to drop cover traffic should be used, and why. what is the cost of a loop vs a drop?
+// for now we just use a parameter that is the ratio of cover traffic to messaging traffic.
 // nsr = ratio noise / signal
-  // experimental values
-  // try nsr -> idgaf, 2, 9, 99
-cbr = nsr * bc
+// network client bandwidth  = noise-to-signal * bandwidth per client
+cbr = nsr * bcl
 mbr = cbr / k
 
 solve for k
