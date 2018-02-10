@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 class MixParameters(object):
+    """ MixParameters: A class to contain and estimate mix parameters.
+    """
 
     # Scaling parameters
     n_authorities = None
     n_clients = None
-    n_mixes = None
     consensus_time = None
 
     # Throughput parameters
@@ -17,11 +18,14 @@ class MixParameters(object):
     desc_size = None
     sig_size = None
 
-    # Decoy parameters
+    # Decoy traffic parameters, as a ratio of noise to signal
+    # XXX: would be useful to break this into loop messages and drop messages.
+    # e.g. a noise_signal value of 2 means 2 decoy messages for every message.
     noise_signal = None
 
     def __init__(self, **args):
-        # initialize parameters
+        # initialize parameters from keyword arguments or leave
+        # defaulted to None if not supplied.
         self.n_authorities = args.get('n_authorities')
         self.n_clients = args.get('n_clients')
         self.consensus_time = args.get('consensus_time')
@@ -34,7 +38,8 @@ class MixParameters(object):
 
     @property
     def n_mixes(self):
-        return mixes_required(self)
+        """ the number of mixes needed given the network parameters """
+        return self.mixes_required
 
     def __str__(self):
 
@@ -57,25 +62,34 @@ class MixParameters(object):
         fmt += "per_client_consensus_overhead:\t{}\n"
         fmt += "per_client_channel_bandwidth:\t{}\n"
 
-        consensus_overhead = consensus_bandwidth_ratio(mp) * (network_bandwidth(mp) / mp.n_clients)
+        consensus_overhead = consensus_bandwidth_ratio(self) * (network_bandwidth(self) / self.n_clients)
 
         def seconds(i):
-            return "%.3f s" % i
+            """ format i as seconds """
+            return "%.3f s" % float(i)
         def byts(i):
-            return "%.3f B" % i
+            """ format i as bytes """
+            return "%.3f B" % float(i)
         def kbyte(i):
+            """ format i as kilobytes """
             return "%.3f kB" % (float(i) / 2**10)
         def mbyte(i):
+            """ format i as megabytes """
             return "%.3f MB" % (float(i) / 2**20)
         def gbyte(i):
+            """ format i as gigabytes """
             return "%.3f GB" % (float(i) / 2**30)
         def tbyte(i):
+            """ format i as terabytes"""
             return "%.3f TB" % (float(i) / 2**40)
         def kbits(i):
+            """ format i as kilobits"""
             return "%.3f Kbit" % (float(i) / 10**3)
         def mbits(i):
+            """ format i as megabits"""
             return "%.3f Mbit" % (float(i) / 10**6)
         def gbits(i):
+            """ format i as gigabits"""
             return "%.3f Gbit" % (float(i) / 10**9)
 
         return fmt.format(self.n_authorities, self.n_clients, self.n_mixes,
@@ -133,7 +147,8 @@ p = MixParameters(
     n_authorities=9,
     message_frequency=10,
     message_size=51200,
-    #identity, link, and mix keys for 3 epochs, 10 bytes of addresses, and 2 bytes from field
+    # XXX: desc_size: identity, link, and mix keys for 3 epochs,
+    # 10 bytes of addresses (a guess), and 2 bytes from field
     desc_size=32+32+3*32+10+2,
     sig_size=64,
     )
