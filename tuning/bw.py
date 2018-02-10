@@ -11,7 +11,7 @@ class MixParameters(object):
 
     # Throughput parameters
     mix_bandwidth = None
-    message_frequency = None
+    lambda_p = None
 
     # Message parameters
     message_size = None
@@ -30,7 +30,7 @@ class MixParameters(object):
         self.n_clients = args.get('n_clients')
         self.consensus_time = args.get('consensus_time')
         self.mix_bandwidth = args.get('mix_bandwidth')
-        self.message_frequency = args.get('message_frequency')
+        self.lambda_p = args.get('lambda_p')
         self.message_size = args.get('message_size')
         self.noise_signal = args.get('noise_signal')
         self.desc_size = args.get('desc_size')
@@ -48,7 +48,7 @@ class MixParameters(object):
         fmt += "n_mixes:\t{}\n"
         fmt += "consensus_time:\t{}\n"
         fmt += "mix_bandwidth:\t{}\n"
-        fmt += "message_frequency:\t\t{}\n"
+        fmt += "lambda_p:\t{}\n"
         fmt += "message_size:\t{}\n"
         fmt += "consensus_size:\t{}\n"
         fmt += "consensus_mb:\t{}\n"
@@ -93,7 +93,7 @@ class MixParameters(object):
         return fmt.format(self.n_authorities, self.n_clients, self.n_mixes,
                           seconds(self.consensus_time),
                           mbits(self.mix_bandwidth),
-                          seconds(self.message_frequency),
+                          seconds(self.lambda_p),
                           kbyte(self.message_size),
                           kbyte(self.consensus_size),
                           gbyte(self.consensus_size * self.n_clients),
@@ -113,7 +113,7 @@ class MixParameters(object):
         """ Returns the average bitrate of a mix client in bits/second """
         byte = 8
         decoy_overhead = (self.noise_signal + 1)
-        return decoy_overhead * (self.message_size * byte / self.message_frequency)
+        return decoy_overhead * (self.message_size * byte / self.lambda_p)
 
     @property
     def consensus_bandwidth(self):
@@ -158,7 +158,7 @@ mix_params = MixParameters(
     mix_bandwidth=5*10**8,
     consensus_time=60*60*3,
     n_authorities=9,
-    message_frequency=10,
+    lambda_p=10,
     message_size=51200,
     # XXX: desc_size: identity, link, and mix keys for 3 epochs,
     # 10 bytes of addresses (a guess), and 2 bytes from field
