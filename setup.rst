@@ -46,6 +46,20 @@ MUST have the correct time. We recommend
     apt install chrony
 
 
+Sample configuration files
+==========================
+
+Each component of the Katzenpost system has sample configuration files
+in the daemons repo:
+
+* https://github.com/katzenpost/daemons
+
+You should use these but don't forget to edit them. For example the
+server's sample configuration file will need to specify your PKI
+Directory Authority's public key instead of the sample key we
+specified.
+
+
 Set up the PKI
 ==============
 
@@ -121,6 +135,38 @@ Optional Provider Postgres Setup
           psql -U provider --password -d katzenpost -h 127.0.0.1 -f create_database-postgresql.sql
 
           # start katzenpost server...
+
+
+Optional Kaetzchen Configuration of the Provider
+================================================
+
+Providers may optionally specify the configuration
+of one or more Provider-side services called Kaetzchen.
+You can learn more about Kaetzchen in our specification:
+
+* https://github.com/katzenpost/docs/blob/master/drafts/kaetzchen.txt
+
+The following is an example [Provider] section of the toml configuration file
+which specifies the zcash Kaetzchen service with several parameters
+that are used to configure the HTTP RPC that it uses:
+
+.. code:: console
+
+   [Provider]
+
+     BinaryRecipients = true
+     #CaseSensitiveRecipients = true
+     #RecipientDelimiter
+
+     [[Provider.Kaetzchen]]
+       Capability = "zcash"
+       Endpoint = "zcash"
+       Disable = false
+       [Provider.Kaetzchen.Config]
+          rpcUser = "username"
+          rpcPass = "FRHv0Xeyf6NecWwxqtVkh2mxO9QYC75F5tFCQFAL"
+          rpcUrl = "http://127.0.0.1:18232/"
+
 
 Add Users to the Provider
 =========================
