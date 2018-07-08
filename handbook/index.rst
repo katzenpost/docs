@@ -119,8 +119,8 @@ changes. We therefore recommend using our golang vendoring system
 to perform the build as described above.
 
 
-Using The Non-voting Directory Authority
-----------------------------------------
+CLI usage of The Non-voting Directory Authority
+-----------------------------------------------
 
 The non-voting authority has the following commandline usage::
 
@@ -130,3 +130,41 @@ The non-voting authority has the following commandline usage::
            Path to the authority config file. (default "katzenpost-authority.toml")
      -g    Generate the keys and exit immediately.
 
+
+The `-g` option is used to generate the public and private keys for
+the Directory Authority.  Clients of the PKI will use this public key
+to verify retreived network consensus documents.  However before
+invoking the authority with this commandline option you MUST provide a
+valid configuration file. This file will specify a data directory
+where these keys will be written.  Normal invocation will omit this
+`-g` option because the keypair should already be present.
+
+A minimal configuration suitable for using with this `-g` option for
+generating the key pair looks like this::
+
+  [Authority]
+  Addresses = [ "192.0.2.1:12345" ]
+  DataDir = "/var/run/katzauth"
+
+Example invocation commandline::
+
+   ./nonvoting -g -f my_authority_config.toml
+
+However the invocation may fail if the permissions on the data directory
+are not restricted to the owning user::
+
+   ./nonvoting -g -f my_authority_config.toml
+   Failed to spawn authority instance: authority: DataDir '/var/run/katzauth' has invalid permissions 'drwxr-xr-x'
+
+Fix permissions like so::
+
+   chmod 700 /var/run/katzauth
+
+A successful run will print output that looks like this::
+
+  14:47:43.141 NOTI authority: Katzenpost is still pre-alpha.  DO NOT DEPEND ON IT FOR STRONG SECURITY OR ANONYMITY.
+  14:47:43.142 NOTI authority: Authority identity public key is: 375F00F6EA20ACFB3F4CDCA7FDB50AE427BF02035B6A2F5789281DAA7290B2BB
+
+
+Configuring The Non-voting Directory Authority
+----------------------------------------------
