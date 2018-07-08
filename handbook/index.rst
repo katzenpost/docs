@@ -9,8 +9,10 @@ Version 0
 .. rubric:: Abstract
 
 Thank you for interest in Katzenpost! This document describes how to
-use the Katzenpost Mix Network software system and details deployment
-strategies for systems administrators.
+use and configure the Katzenpost Mix Network software system. The
+target audience for this document is systems administrators and
+assumes you are familiar with using the git revision control system
+and building golang binaries.
 
 .. contents:: :local:
 
@@ -365,7 +367,9 @@ for the given mix or provider, for example::
       PublicKey = "kAiVchOBwHVtKJVFJLsdCQ9UyN2SlfhLHYqT8ePBetg="
 
 * ``Nonvoting`` is a simple non-voting PKI for test deployments.
+
 * ``Address`` is the IP address/port combination of the directory authority.
+
 * ``PublicKey`` is the directory authority's public key in Base64 or Base16 format.
 
 
@@ -411,15 +415,74 @@ changes during run-time. An example configuration looks like this::
   left empty then `management_sock` will be used under the DataDir.
 
 
+The ``socat`` commandline utility can be use to connect to the management socket
+and issue commands. Connect with a commandline like so::
+
+   socat unix:/<path-to-data-dir>/management_sock STDOUT
+
+
+The following commands are possible:
+
+* ``ADD_USER`` - Add a user and associate it with the given link key in either hex or base64.
+  The syntax of the command is as follows::
+
+    ADD_USER alice X25519_public_key_in_hex_or_base64
+
+* ``UPDATE_USER`` - Update the link key of a given user.
+  The syntax of the command is as follows::
+
+    UPDATE_USER alice X25519_public_key_in_hex_or_base64
+
+* ``REMOVE_USER`` - Remove a given user.
+  The syntax of the command is as follows::
+
+    REMOVE_USER alice
+
+* ``SET_USER_IDENTITY`` - Set a given user's identity key.
+  The syntax of the command is as follows::
+
+    SET_USER_IDENTITY alice ED25519_public_key_in_hex_or_base64
+
+* ``USER_IDENTITY`` - Retrieve the identity key of the given user.
+  The syntax of the command is as follows::
+
+    USER_IDENTITY alice
+
+
 Provider section
 ````````````````
 
-The Provider secton specifies the Provider configuration, for example::
+The Provider secton specifies the Provider configuration.
+This section of the configuration has sensible defaults for
+every field and can therefore be omitted unless you wish
+to deviate from the defaults.
+
+The top-level Provider configuration parameters include:
+
+* ``BinaryRecipients`` if set to ``true`` disables all Provider side
+  recipient pre-processing, including removing trailing `NUL` bytes,
+  case normalization, and delimiter support.
+
+* ``CaseSensitiveRecipients`` if set to ``true`` disables recipient
+  case normalization. If left unset, all user names will be converted
+  to lower case.
+
+* ``RecipientDelimiter`` is the set of characters that separates a user name
+  from it's extension (eg: `alice+foo`).
+
+* ``AltAddresses`` is the map of extra transports and addresses at which
+  the Provider is reachable by clients.  The most useful alternative
+  transport is likely ("tcp") (`core/pki.TransportTCP`).
+
+
+Kaetzchen Configuration
+'''''''''''''''''''''''
+
+We will now consider configuring Provider-side autoresponder service
+which our specifications and documentation shall refer to as
+``Kaetzchen``. Consider the following simple configuration example::
 
   [Provider]
-    BinaryRecipients = false
-    CaseSensitiveRecipients = false
-    RecipientDelimiter = "@"
 
     [[Provider.Kaetzchen]]
       Capability = "fancy"
@@ -431,39 +494,76 @@ The Provider secton specifies the Provider configuration, for example::
         rpcPass = "password"
         rpcUrl = "http://127.0.0.1:11323/"
 
+    [[Provider.Kaetzchen]]
+      Capability = "shiny"
+      Endpoint = "+shiny"
+      Disable = false
 
-  # UserDB is the user database configuration.  If left empty the simple
-  # BoltDB backed user database will be used with the default database.
-  # [Provider.UserDB]
+The ``Kaetzchen`` field is the list of configured Kaetzchen
+(auto-responder agents) for this provider. In the above example we
+configured two Kaetzchen, one called ``fancy`` and the other
+``shiny``. As you can see, ``fancy`` has some configuration parameters
+that ``shiny`` does not.
 
-    # Backend selects the UserDB backend to be used.
-    # Backend = "bolt"
+Lets review the Kaetzchen configuration parameters:
 
-    # Bolt is the BoltDB backed user database. (`bolt`)
-    # [Provider.UserDB.Bolt]
+* ``Capability`` is the capability exposed by the agent.
 
-      # UserDB is the path to the user database.  If left empty it will use
-      # `users.db` under the DataDir.
-      # UserDB = "fuck"
+* ``Endpoint`` is the provider side endpoint that the agent will accept
+  requests at. While not required by the spec, this server only
+  supports Endpoints that are lower-case local-parts of an e-mail
+  address. By convention these endpoint strings begin with ``+``.
 
-    # Extern is the externally defined (RESTful http) user database. (`extern`)
-    # [Provider.UserDB.Extern]
+* ``Config`` is the extra per agent arguments to be passed to the agent's
+  initialization routine.
 
-      # ProviderURL is the base URL used for the external provider
-      # authentication API.  It should be of the form `http://localhost:8080`.
-      # ProviderURL = "http://localhost:8080"
+* ``Disable`` disabled a configured agent.
 
-  # SpoolDB is the user message spool configuration.  If left empty, the
-  # simple BoltDB backed user message spool will be used with the default
-  # database.
-  # [Provider.SpoolDB]
 
-    # Backend selects the SpoolDB backend to be used.
-    # Backend = "bolt"
+Next we will discuss database backends for supporting various Provider services.
 
-    # Bolt is the BoltDB backed user message spool. (`bolt`)
-    # [Provider.SpoolDB.Bolt]
+* ``UserDB`` is the userdb backend configuration.
 
-      # SpoolDB is the path to the user message spool.  If left empty, it will
-      # use `spool.db` under the DataDir.
-      # SpoolDB = "fuck"
+* ``SpoolDB`` is the user message spool configuration.
+
+* ``SQLDB`` is the SQL database backend configuration.
+
+
+Provider User Database Configuration
+''''''''''''''''''''''''''''''''''''
+
+``UserDB`` is the user database configuration.  If left empty the simple
+BoltDB backed user database will be used with the default database. A simple
+configuration example::
+
+  [Provider.UserDB]
+    Backend = "bolt"
+
+    [Provider.UserDB.Bolt]
+      UserDB = "my_users.db"
+
+
+* ``Backend`` is the active userdb backend. If left empty, the BoltUserDB
+  backend will be used (`bolt`).
+
+If the ``bolt`` backend is specified there is one configuration parameter
+available under this section:
+
+* ``UserDB`` is the path to the user database. If left empty it will use
+  `users.db` under the DataDir.
+
+
+Next we will examine a configuration example which demonstrates using
+a user database via HTTP::
+
+    [Provider.UserDB]
+      [Provider.UserDB.ExternUserDB]
+        ProviderURL = "http://localhost:8080/"
+
+* ``ExternUserDB`` is the external http user authentication mechanism.
+
+* ``ProviderURL`` is the base url used for the external provider authentication API.
+
+
+Lastly, we will explore how to use a SQL database as the backend for the
+user database...
