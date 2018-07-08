@@ -312,6 +312,7 @@ Both of these components are provided for by the ``server`` binary.
 Each Provider and Mix MUST be white-listed by the Directory Authority (PKI)
 in order to participate in the network.
 
+
 Building the ``server`` binary
 ------------------------------
 
@@ -331,6 +332,28 @@ Neither of these build strategies is ideal because the latest
 versions of any of our software dependencies may make breaking
 changes. We therefore recommend using our golang vendoring system
 to perform the build as described above.
+
+
+``server`` Commandline Usage
+----------------------------
+
+The ``server`` commandline usage is as follows::
+
+  ./server -h
+  Usage of ./server:
+    -f string
+          Path to the server config file. (default "katzenpost.toml")
+    -g    Generate the keys and exit immediately.
+
+
+The command output when generating keys looks like this::
+
+  ./server -f my_katzenpost_mix_server.toml -g
+  22:51:55.377 NOTI server: Katzenpost is still pre-alpha.  DO NOT DEPEND ON IT FOR STRONG SECURITY OR ANONYMITY.
+  22:51:55.377 NOTI server: AEZv5 implementation is hardware accelerated.
+  22:51:55.377 NOTI server: Server identifier is: 'example.com'
+  22:51:55.379 NOTI server: Server identity public key is: 2628F87F2806048C95F060DA9CD3D8F9BE7550BFB9EE85F213381BC04C047650
+  22:51:55.379 NOTI server: Server link public key is: CCDC5C105E649D543DF1CF397A17638F812F95B7E572288F4602F8EC01EC4F3C
 
 
 Configuring Mixes and Providers
@@ -652,7 +675,7 @@ Setup the Postgres SQL database backend:
 
    Set the password for your new user::
 
-     postgres=# ALTER USER provider WITH PASSWORD 's3cr3tp0stgr355';
+     ALTER USER provider WITH PASSWORD 's3cr3tp0stgr355';
 
    Test to see if you can connect::
 
