@@ -565,5 +565,80 @@ a user database via HTTP::
 * ``ProviderURL`` is the base url used for the external provider authentication API.
 
 
+Using the Postgres SQL Database Backend
+'''''''''''''''''''''''''''''''''''''''
+
 Lastly, we will explore how to use a SQL database as the backend for the
-user database...
+user database, for example::
+
+  [Provider]
+    [Provider.SQLDB]
+      Backend = "pgx"
+      DataSourceName = "postgresql://provider:s3cr3tp0stgr355@127.0.0.1:5433/katzenpost"
+    [Provider.SpoolDB]
+      Backend = "sql"
+    [Provider.UserDB]
+      Backend = "sql"
+
+This configuration sample demonstrates how to use a Postgres database
+for both the user database and the spool databse. The ``Backend`` parameter
+is set to ``pgx`` which means "use a postgresql database".
+
+* ``DataSourceName`` is the SQL data source name or URI. The format
+  of this parameter is dependent on the database driver being used.
+
+
+Setup the Postgres SQL database backend:
+
+0. Install postgres
+   Postgres 9.5 or later is required. On a debian
+   system you can install it like so::
+
+     apt install postgresql
+
+1. Configure postgres access
+   The pg_hba.conf file is the place to configure access to the
+   databases. It's parsed from top to bottom, first matching rule is
+   applied. You probably need to add a rule for your 'provider' user
+   fairly early. On a debian system this file may be located here::
+
+     /etc/postgresql/9.6/main/pg_hba.conf
+
+   Start a shell as the postgres user. If you are superuser
+   you can use su or sudo to start the shell as postgres like::
+
+     sudo -u postgres
+
+   or without sudo::
+
+     su - postgres
+
+   Add the database user "provider"::
+
+     createuser -U postgres provider
+
+   Add a database::
+
+     createdb -U postgres -O provider katzenpost
+
+   Start the postgres shell::
+
+     psql
+
+   Set the password for your new user::
+
+     postgres=# ALTER USER provider WITH PASSWORD 's3cr3tp0stgr355';
+
+   Test to see if you can connect::
+
+     psql -U provider -h 127.0.0.1 katzenpost
+
+   If all goes fine, it's time to load the SQL, that creates the
+   Katzenpost database schema and stored procedures::
+
+     psql -U provider --password -d katzenpost -h 127.0.0.1 -f create_database-postgresql.sql
+
+   That sql script is located in our ``server`` git repository, here:
+   https://github.com/katzenpost/server/blob/master/internal/sqldb/create_database-postgresql.sql
+
+3. Start the Katzenpost server.
