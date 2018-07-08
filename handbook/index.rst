@@ -76,6 +76,15 @@ NOTE: ``#`` may be used at the beginning of a line to denote a comment
 instead of an effective configuration line.
 
 
+Example Katzenpost Configuration Files
+--------------------------------------
+
+Sample Katzenpost configuration files are located in our ``daemons``
+git repository under the component's corresponding subdirectory:
+
+* https://github.com/katzenpost/daemons
+
+
 Katzenpost Mix Network Public Key Infrastructure
 ================================================
 
@@ -565,11 +574,27 @@ a user database via HTTP::
 * ``ProviderURL`` is the base url used for the external provider authentication API.
 
 
+Provider Spool Database Configuration
+'''''''''''''''''''''''''''''''''''''
+
+The Provider spool database stores received messages for later
+retreival by clients. A simple configuration example follows::
+
+  [Provider.SpoolDB]
+    Backend = "bolt"
+
+    [Provider.SpoolDB.Bolt]
+      SpoolDB = "my_spool.db"
+
+* ``SpoolDB`` is the path to the user message spool. If left empty, it
+  will default to `spool.db` under the DataDir.
+
+
 Using the Postgres SQL Database Backend
 '''''''''''''''''''''''''''''''''''''''
 
 Lastly, we will explore how to use a SQL database as the backend for the
-user database, for example::
+user and spool databases, for example::
 
   [Provider]
     [Provider.SQLDB]
