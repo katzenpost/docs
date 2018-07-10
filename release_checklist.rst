@@ -7,9 +7,9 @@ Prerequisites
 
 Building Katzenpost has the following prerequisites:
 
- * Some familiarity with building Go binaries.
- * `Go <https://golang.org>`_ 1.9 or later.
- * A recent version of `dep <https://github.com/golang/dep>`_.
+* Some familiarity with building Go binaries.
+* `Go <https://golang.org>`_ 1.9 or later.
+* A recent version of `dep <https://github.com/golang/dep>`_.
 
 
 Building
@@ -17,83 +17,114 @@ Building
 
 * ensure local copies of all respositories are on master, up-to-date
 
-  * core::
-    cd $GOPATH/src/github.com/katzenpost/core
-    git checkout master
-    git pull origin master
+.. code:: bash
 
-  * server::
-    cd $GOPATH/src/github.com/katzenpost/server
-    git checkout master
-    git pull origin master
+   cd $GOPATH/src/github.com/katzenpost/core
+   git checkout master
+   git pull origin master
 
-  * minclient::
-    cd $GOPATH/src/github.com/katzenpost/minclient
-    git checkout master
-    git pull origin master
 
-  * mailproxy::
-    cd $GOPATH/src/github.com/katzenpost/mailproxy
-    git checkout master
-    git pull origin master
+.. code:: bash
 
-  * authority::
-    cd $GOPATH/src/github.com/katzenpost/authority
-    git checkout master
-    git pull origin master
+   cd $GOPATH/src/github.com/katzenpost/server
+   git checkout master
+   git pull origin master
 
-  * daemons::
-    cd $GOPATH/src/github.com/katzenpost/daemons
-    git checkout master
-    git pull origin master
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/minclient
+   git checkout master
+   git pull origin master
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/mailproxy
+   git checkout master
+   git pull origin master
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/authority
+   git checkout master
+   git pull origin master
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/daemons
+   git checkout master
+   git pull origin master
 
     
 * run all tests and ensure they pass
 
-   * test core library::
-       cd $GOPATH/src/github.com/katzenpost/core
-       go test -v ./...
+.. code:: bash
 
-   * test server library::
-       cd $GOPATH/src/github.com/katzenpost/server
-       go test -v ./...
+   cd $GOPATH/src/github.com/katzenpost/core
+   go test -v ./...
 
-   * test minclient library::
-       cd $GOPATH/src/github.com/katzenpost/minclient
-       go test -v ./...
 
-   * test mailproxy library::
-       cd $GOPATH/src/github.com/katzenpost/mailproxy
-       go test -v ./...
+.. code:: bash
 
-   * test authority library::
-       cd $GOPATH/src/github.com/katzenpost/authority
-       go test -v ./...
+   cd $GOPATH/src/github.com/katzenpost/server
+   go test -v ./...
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/minclient
+   go test -v ./...
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/mailproxy
+   go test -v ./...
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/authority
+   go test -v ./...
+
 
 * bumb version tags for each repository
   (replace v0.0.1 with bumped version)
 
-  * core::
-    cd $GOPATH/src/github.com/katzenpost/core
-    git tag v0.0.1
-    git push origin v0.0.1
 
-  * authority::
-    cd $GOPATH/src/github.com/katzenpost/authority
-    git tag v0.0.1
-    git push origin v0.0.1
+.. code:: bash
 
-  * minclient::
-    cd $GOPATH/src/github.com/katzenpost/minclient
-    git tag v0.0.1
-    git push origin v0.0.1
+   cd $GOPATH/src/github.com/katzenpost/core
+   git tag v0.0.1
+   git push origin v0.0.1
 
-  * mailproxy::
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/authority
+   git tag v0.0.1
+   git push origin v0.0.1
+
+
+.. code:: bash
+
+   cd $GOPATH/src/github.com/katzenpost/minclient
+   git tag v0.0.1
+   git push origin v0.0.1
+
+
+.. code:: bash
+
     cd $GOPATH/src/github.com/katzenpost/mailproxy
     git tag v0.0.1
     git push origin v0.0.1
 
-  * server::
+
+.. code:: bash
+
     cd $GOPATH/src/github.com/katzenpost/server
     git tag v0.0.1
     git push origin v0.0.1
@@ -106,12 +137,14 @@ Building
 
     * edit https://github.com/katzenpost/daemons/blob/master/Gopkg.toml
 
-  * update vendoring::
+  * update vendoring
+  .. code:: bash
 
       cd $GOPATH/github.com/katzenpost/daemons
       dep ensure
 
-* build the binaries::
+* build the binaries
+.. code:: bash
 
     cd $GOPATH/github.com/katzenpost/daemons
     (cd authority/nonvoting; go build)
@@ -120,7 +153,6 @@ Building
 
 * update docs respository's releases.rst to reflect reality
 
-   * cd $GOPATH/src/github.com/katzenpost/docs
-   * edit releases.rst
-
-     * update heading, date, changes info
+  * cd $GOPATH/src/github.com/katzenpost/docs
+  * edit releases.rst
+    * update heading, date, changes info
