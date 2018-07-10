@@ -85,6 +85,17 @@ git repository under the component's corresponding subdirectory:
 * https://github.com/katzenpost/daemons
 
 
+Notes on Building a Test Mix Network
+------------------------------------
+
+Providers, mixes and the Directory Authority are distinct components
+of a Katzenpost mix network which SHOULD be deployed on separate
+server machines. If you are building a test network on a single
+machine then all mix network components must have differing network
+endpoints; that is, if their IP addresses do not differ then their TCP
+port numbers must be different.
+
+
 Katzenpost Mix Network Public Key Infrastructure
 ================================================
 
@@ -307,11 +318,10 @@ Katzenpost Mix Infrastructure
 Overview
 --------
 
-The Katzenpost Providers is strictly a superset of the Katzenpost mix.
+A Katzenpost Provider is strictly a superset of the Katzenpost mix.
 Both of these components are provided for by the ``server`` binary.
 Each Provider and Mix MUST be white-listed by the Directory Authority (PKI)
 in order to participate in the network.
-
 
 Building the ``server`` binary
 ------------------------------
