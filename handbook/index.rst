@@ -40,28 +40,35 @@ golang environment with at least golang 1.9 or later AND the git
 revision control system commandline installed.
 
 
-Building Katzenpost Components with Dependency Vendoring
---------------------------------------------------------
+Building the latest stable version of Katzenpost
+------------------------------------------------
 
-We recommend using our golang vendoring system to perform the builds.
+NOTE: Find out what our latest stable version tag
+by looking at the "releases.rst" file in the top-level
+of this repository.
+
 
 0. Acquire a recent version of dep: https://github.com/golang/dep
 
 1. Clone the Katzenpost daemons repository::
 
-   mkdir $GOPATH/github.com/katzenpost
-   git clone https://github.com/katzenpost/daemons.git
+     mkdir $GOPATH/github.com/katzenpost
+     git clone https://github.com/katzenpost/daemons.git
+
+2. Checkout the latest stable release tag::
+
+     cd $GOPATH/github.com/katzenpost/daemons
+     git checkout v0.0.1
 
 2. Fetch the Katzenpost vendored dependencies::
 
-   cd $GOPATH/github.com/katzenpost/daemons
-   dep ensure
+     dep ensure
 
 3. Build the binaries::
 
-   cd authority/nonvoting; go build
-   cd server; go build
-   cd mailproxy; go build
+     cd authority/nonvoting; go build
+     cd server; go build
+     cd mailproxy; go build
 
 
 The Katzenpost Configuration File Format
