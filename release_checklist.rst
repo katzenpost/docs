@@ -146,10 +146,16 @@ Building
 * build the binaries
 .. code:: bash
 
-    cd $GOPATH/github.com/katzenpost/daemons
     (cd authority/nonvoting; go build)
     (cd server; go build)
     (cd mailproxy; go build)
+
+* commit and tag the changes to the daemons repo
+.. code:: bash
+
+   git commit -a -m "dep ensure"
+   git tag v0.0.1
+   git push origin v0.0.1
 
 * update docs respository's releases.rst to reflect reality
 
