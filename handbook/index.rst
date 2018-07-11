@@ -464,40 +464,6 @@ changes during run-time. An example configuration looks like this::
   left empty then `management_sock` will be used under the DataDir.
 
 
-The ``socat`` commandline utility can be use to connect to the management socket
-and issue commands. Connect with a commandline like so::
-
-   socat unix:/<path-to-data-dir>/management_sock STDOUT
-
-
-The following commands are possible:
-
-* ``ADD_USER`` - Add a user and associate it with the given link key in either hex or base64.
-  The syntax of the command is as follows::
-
-    ADD_USER alice X25519_public_key_in_hex_or_base64
-
-* ``UPDATE_USER`` - Update the link key of a given user.
-  The syntax of the command is as follows::
-
-    UPDATE_USER alice X25519_public_key_in_hex_or_base64
-
-* ``REMOVE_USER`` - Remove a given user.
-  The syntax of the command is as follows::
-
-    REMOVE_USER alice
-
-* ``SET_USER_IDENTITY`` - Set a given user's identity key.
-  The syntax of the command is as follows::
-
-    SET_USER_IDENTITY alice ED25519_public_key_in_hex_or_base64
-
-* ``USER_IDENTITY`` - Retrieve the identity key of the given user.
-  The syntax of the command is as follows::
-
-    USER_IDENTITY alice
-
-
 Provider section
 ````````````````
 
@@ -707,3 +673,185 @@ Setup the Postgres SQL database backend:
    https://github.com/katzenpost/server/blob/master/internal/sqldb/create_database-postgresql.sql
 
 3. Start the Katzenpost server.
+
+
+Runtime configuration changes with the management socket
+--------------------------------------------------------
+
+The ``socat`` commandline utility can be use to connect to the management socket
+and issue commands. Connect with a commandline like so::
+
+   socat unix:/<path-to-data-dir>/management_sock STDOUT
+
+
+The following commands are possible:
+
+* ``ADD_USER`` - Add a user and associate it with the given link key in either hex or base64.
+  The syntax of the command is as follows::
+
+    ADD_USER alice X25519_public_key_in_hex_or_base64
+
+* ``UPDATE_USER`` - Update the link key of a given user.
+  The syntax of the command is as follows::
+
+    UPDATE_USER alice X25519_public_key_in_hex_or_base64
+
+* ``REMOVE_USER`` - Remove a given user.
+  The syntax of the command is as follows::
+
+    REMOVE_USER alice
+
+* ``SET_USER_IDENTITY`` - Set a given user's identity key.
+  The syntax of the command is as follows::
+
+    SET_USER_IDENTITY alice ED25519_public_key_in_hex_or_base64
+
+* ``USER_IDENTITY`` - Retrieve the identity key of the given user.
+  The syntax of the command is as follows::
+
+    USER_IDENTITY alice
+
+
+Mailproxy Client Daemon
+=======================
+
+Overview
+--------
+
+Mailproxy is one of many possible clients for using a Katzenpost mix
+network. It supports POP3 and SMTP for message retreival and message
+transmission respectively and is intended to run on a user's localhost
+to allow standard mail clients to send and receive mail over the
+mixnet.
+
+Mailproxy is a daemon which runs in the background and periodically
+transmits and receives messages. Once it receives a message it will be
+queued locally and encrypted onto disk for later retreival via POP3.
+
+
+Configuration
+-------------
+
+The Proxy Section
+`````````````````
+
+The Proxy section contains mandatory proxy configuration, for example::
+
+  [Proxy]
+    POP3Address = "127.0.0.1:2524"
+    SMTPAddress = "127.0.0.1:2525"
+    DataDir = "/home/user/.local/share/katzenpost"
+
+
+* `POP3Address` is the IP address/port combination that the mail proxy
+  will bind to for POP3 access. If omitted `127.0.0.1:2524` will be
+  used.
+
+* `SMTPAddress` is the IP address/port combination that the mail proxy
+  will bind to for SMTP access. If omitted `127.0.0.1:2525` will be
+  used.
+
+* `DataDir` is the absolute path to mailproxy's state files.
+
+
+The Logging Section
+```````````````````
+
+The Logging section controls the logging, for example::
+
+  [Logging]
+    Disable = false
+    File = "/home/user/.local/share/katzenpost/katzenpost.log"
+    Level = "DEBUG"
+
+* `Disable` disables logging entirely if set to `true`.
+
+* `File` specifies the log file, if omitted stdout will be used.
+
+* `Level` specifies the log level out of `ERROR`, `WARNING`, `NOTICE`,
+  `INFO` and `DEBUG`. **Warning: The `DEBUG` log level is unsafe for
+  production use.**
+
+
+The NonvotingAuthority Section
+``````````````````````````````
+
+The NonvotingAuthority section specifies one or more nonvoting
+directory authorities, for example::
+
+  [NonvotingAuthority]
+    [NonvotingAuthority.TestAuthority]
+      Address = "192.0.2.2:2323"
+      PublicKey = "kAiVchOBwHVtKJVFJLsdCQ9UyN2SlfhLHYqT8ePBetg="
+
+This configuration section supports multiple entries. In the above
+example, the entry is labelled as `TestAuthority` and is referred
+to later in the `Account` section of the mailproxy configuration.
+
+* `Address` is the IP address/port combination of the directory
+  authority.
+
+* `PublicKey` is the directory authority's public key in Base64 or
+  Base16 format.
+
+
+The Account Section
+```````````````````
+
+The Account section specifies account configuration(s), for example::
+
+  [[Account]]
+    User = "alice"
+    Provider = "example.com"
+    ProviderKeyPin = "0AV1syaCdBbm3CLmgXLj6HdlMNiTeeIxoDc8Lgk41e0="
+    Authority = "TestAuthority"
+
+
+* ``User`` is the account user name.
+
+* ``Provider`` is the provider identifier used by this account.
+
+* ``ProviderKeyPin`` is the optinal pinned provider signing key in
+  Base64 or Base16 format.
+
+* ``Authority`` is the authority configuration used by this account.
+
+
+The Management section
+``````````````````````
+
+The Management section specifies the management interface configuration,
+for example::
+
+  [Management]
+    Enable = true
+    Path = "/home/user/.local/share/katzenpost/management_sock"
+
+* ``Enable`` enables the management interface.
+
+* ``Path`` specifies the path to the management interface socket.  If
+  left empty it will use `management_sock` under the DataDir.
+
+
+Using the mangement interface
+-----------------------------
+
+Several mailproxy management commands are supported:
+
+* ``GET_RECIPIENT`` - Returns the given user's public identity key.
+  The syntax of the command is as follows::
+
+    GET_RECIPIENT username
+
+* ``SET_RECIPIENT`` - Sets the given user's public identity key specified in hex or base64.
+  The syntax of the command is as follows::
+
+    SET_RECIPIENT username X25519_public_key_in_hex_or_base64
+
+* ``REMOVE_RECIPIENT`` - Removes a given recipient.
+  The syntax of the command is as follows::
+
+    REMOVE_RECIPIENT username
+
+* ``LIST_RECIPIENTS`` - Lists all the recipients.
+  This command expects no arguments.
