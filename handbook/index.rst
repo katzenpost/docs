@@ -444,6 +444,8 @@ The Logging section controls the logging, for example::
 * INFO
 * DEBUG
 
+**Warning: The `DEBUG` log level is unsafe for production use.**
+
 
 Management section
 ``````````````````
@@ -769,8 +771,9 @@ The Logging section controls the logging, for example::
 * `File` specifies the log file, if omitted stdout will be used.
 
 * `Level` specifies the log level out of `ERROR`, `WARNING`, `NOTICE`,
-  `INFO` and `DEBUG`. **Warning: The `DEBUG` log level is unsafe for
-  production use.**
+  `INFO` and `DEBUG`.
+
+**Warning: The `DEBUG` log level is unsafe for production use.**
 
 
 The NonvotingAuthority Section
