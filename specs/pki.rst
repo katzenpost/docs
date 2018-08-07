@@ -149,10 +149,6 @@ Version 0
       * The serialization format of mix descriptors is different from
         that used in Mixminion and Tor.
 
-.. note::
-
-   David: add more differences to this list
-
 2. Overview of Mix PKI Interaction
 ==================================
 
@@ -182,6 +178,14 @@ Version 0
    this shouldn't present any useability problems since SURBs are only
    used for sending ACK messages from the destination Provider to the
    sender as described in [KATZMIXE2E]_.
+
+   A threshold number of mix outages for a given network topology
+   layer can trigger a topology randomization which essentially
+   rebalances the network. Although this defense removes some of the
+   control an attacker may have over client path selection it must be
+   used sparingly because topology randomization splits each mix
+   anonymity set into two, distinguishable by previous topology versus
+   current topology.
 
 2.1 PKI Protocol Schedule
 -------------------------
