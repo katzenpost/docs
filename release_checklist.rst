@@ -12,6 +12,7 @@ Building Katzenpost has the following prerequisites:
 * `Go <https://golang.org>`_ 1.9 or later.
 * A recent version of `dep <https://github.com/golang/dep>`_.
 * A recent version of `goreleaser <https://goreleaser.com>`_.
+* rpmbuild, provided by debian package rpm.
 
 
 
