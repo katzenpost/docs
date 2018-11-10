@@ -4,6 +4,7 @@ Katzenpost Mix Network Public Key Infrastructure Specification
 **************************************************************
 
 | Yawning Angel
+| Claudia Diaz
 | Ania Piotrowska
 | David Stainton
 
@@ -788,7 +789,9 @@ vote was not accepted.
 
    * Use a append only merkle tree instead of this voting protocol.
 
+
 8. Anonymity Considerations
+===========================
 
    * This system is intentionally designed to provide identical
      network consensus documents to each mix client. This mitigates
@@ -800,7 +803,18 @@ vote was not accepted.
      file, clients MUST NOT use this compromised consensus and refuse
      to run.
 
+   * We try to avoid randomizing the topology because doing so splits
+     the anonymity sets on each mix into two. That is, packets belonging
+     to the previous topology versus the current topology are trivially
+     distinguishable. On the other hand if enough mixes fall out of
+     consensus eventually the mixnet will need to be rebalanced to avoid
+     an attacker compromised path selection. One example of this would
+     be the case where the adversary controls the only mix is one
+     layer of the network topology.
+
+
 9. Security Considerations
+==========================
 
    * The Directory Authority/PKI system for a given mix network is
      essentially the root of all authority in the system. The PKI
@@ -824,14 +838,20 @@ vote was not accepted.
      inconsistently can trivially cause a denial of service for each
      voting round.
 
-10. Acknowledgements
 
-   We would like to thank Nick Mathewson for answering design questions
-   and thorough design review.
+10. Acknowledgements
+====================
+
+We would like to thank Nick Mathewson for answering design questions
+and thorough design review.
+
+
 
 Appendix A. References
+======================
 
 Appendix A.1 Normative References
+---------------------------------
 
 .. [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
