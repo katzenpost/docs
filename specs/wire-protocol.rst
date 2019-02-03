@@ -1,5 +1,5 @@
 Katzenpost Mix Network Wire Protocol Specification
-*************************************************
+**************************************************
 
 | Yawning Angel
 | David Stainton
@@ -38,7 +38,7 @@ Mix Network.
    ``x | y`` denotes the concatenation of x and y.
 
 1.2 Kyber Key Encapsulation Mechanism
-----------------------------------------------
+-------------------------------------
 
    This protocol uses the Kyber Key Encapsulation Mechanism, as
    specified in the original Kyber paper [KYBER]_ and the second Kyber
@@ -100,7 +100,7 @@ Mix Network.
    framing is required for the handshake.
 
    Implementations MUST preserve the Noise handshake hash (`h`) for the
-   purpose of implementing authentication (Section 2.3).
+   purpose of implementing authentication (Section 2.1.1).
 
    Implementations MUST reject handshake attempts by terminating the
    session immediately upon any Noise protocol handshake failure
