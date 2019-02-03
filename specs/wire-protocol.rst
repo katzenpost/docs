@@ -60,13 +60,13 @@ Mix Network.
    specification.  As a non-standard modification to the Noise protocol,
    the 65535 byte message length limit is increased to 1048576 bytes.
 
-   Kyber is formally defined for the purpose of this version of the
-   ``hfs`` handshake variant with the following be the parameters:
+   Kyber1024 is not formally defined for the purpose of this version of the
+   ``hfs`` handshake variant, let the following be the parameters:
 
-     ``FLEN1 = 1088``, the size of the initiator's public key output of the Kyber
+     ``FLEN1 = 1440``, the size of the initiator's public key output of the Kyber
              crypto_kem_keypair operation.
 
-     ``FLEN2 = 1184``, the size of the responder's ciphertext output of the Kyber
+     ``FLEN2 = 1504``, the size of the responder's ciphertext output of the Kyber
              crypto_kem_enc operation.
 
      ``FFLEN = 32``
