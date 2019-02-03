@@ -2,8 +2,9 @@ Katzenpost Mix Network Wire Protocol Specification
 *************************************************
 
 | Yawning Angel
+| David Stainton
 
-Version 0
+Version 1
 
 .. rubric:: Abstract
 
@@ -36,49 +37,43 @@ Mix Network.
 
    ``x | y`` denotes the concatenation of x and y.
 
-1.2 NewHope-Simple Key Encapsulation Mechanism
+1.2 Kyber Key Encapsulation Mechanism
 ----------------------------------------------
 
-   This protocol uses the NewHope-Simple Key Encapsulation Mechanism,
-   as specified in the original NewHope [NEWHOPE]_ and NewHope-Simple
-   [NHSIMPLE]_ papers. All references to the NewHope-Simple shared
-   secret in this document are to be interpreted as the final ``mu``
-   output for each party.
-
-   Note that while the NewHope and NewHope-Simple papers describe Alice
-   as the "server" and Bob as the "client", for the purposes of this
-   protocol, Alice is to be interpreted as the initiator, and Bob as
-   the responder.
+   This protocol uses the Kyber Key Encapsulation Mechanism, as
+   specified in the original Kyber paper [KYBER]_ and the second Kyber
+   paper [KYBERCCA]_. All references to the Kyber shared secret in
+   this document are to be interpreted as the final output for each
+   party.
 
 2. Core Protocol
 ================
 
-   The protocol is based on NewHope-Simple and Trevor Perrin's Noise
+   The protocol is based on Kyber and Trevor Perrin's Noise
    Protocol Framework [NOISE]_ with the Hybrid Forward Secrecy extension
    [NOISEHFS]_ and can be viewed as a prologue, Noise handshake, followed
    by a stream of Noise Transport messages in a minimal framing layer,
    over a TCP/IP connection.
 
-   ``Noise_XXhfs_25519+NewHopeSimple_ChaChaPoly_Blake2b`` is used as the
+   ``Noise_XXhfs_25519+Kyber_ChaChaPoly_Blake2b`` is used as the
    Noise protocol name, and parameterization for the purposes of this
    specification.  As a non-standard modification to the Noise protocol,
    the 65535 byte message length limit is increased to 1048576 bytes.
 
-   As NewHope-Simple is not formally defined for the purpose of this
-   version of the ``hfs`` handshake variant, let the following be the
-   parameters:
+   Kyber is formally defined for the purpose of this version of the
+   ``hfs`` handshake variant with the following be the parameters:
 
-     ``FLEN1 = 1824``, the size of the ``m_a`` output of the NewHope-Simple
-             encodeA operation.
+     ``FLEN1 = 1088``, the size of the initiator's public key output of the Kyber
+             crypto_kem_keypair operation.
 
-     ``FLEN2 = 2176``, the size of the ``m_b`` output of the NewHope-Simple
-             encodeB operation.
+     ``FLEN2 = 1184``, the size of the responder's ciphertext output of the Kyber
+             crypto_kem_enc operation.
 
      ``FFLEN = 32``
 
    It is assumed that all parties using the KMNWP protocol have a fixed
    long lived X25519 keypair [RFC7748]_, the public component of which
-   is known to the other party in advance.  How such keys are distributed
+   is known to the other party in advance. How such keys are distributed
    is beyond the scope of this document.
 
 2.1 Handshake Phase
@@ -98,7 +93,7 @@ Mix Network.
    .. code::
 
        struct {
-           uint8_t protocol_version; /* 0x00 */
+           uint8_t protocol_version; /* 0x01 */
        } Prologue;
 
    As all Noise handshake messages are fixed sizes, no additional
@@ -291,15 +286,14 @@ Mix Network.
 ==========================
 
    It is imperative that implementations use ephemeral keys for every
-   handshake as the security properties of the NewHope-Simple KEM are
-   totally lost if keys are ever reused.
+   handshake as the security properties of the Kyber KEM are totally
+   lost if keys are ever reused.
 
-   NewHope-Simple was chosen as the KEM algorithm due to it's
-   conservative parameterization, simplicty of implementation, and
-   high performance in software. It is hoped that the addition of a
-   quantum resistant algorithm will provide forward secrecy even in
-   the event that large scale quantum computers are applied to
-   historical intercepts.
+   Kyber was chosen as the KEM algorithm due to it's conservative
+   parameterization, simplicty of implementation, and high performance
+   in software. It is hoped that the addition of a quantum resistant
+   algorithm will provide forward secrecy even in the event that large
+   scale quantum computers are applied to historical intercepts.
 
 6. Acknowledgments
 ==================
@@ -324,15 +318,17 @@ Appendix A.1 Normative References
               DOI 10.17487/RFC5246, August 2008,
               <https://www.rfc-editor.org/info/rfc5246>.
 
-.. [NEWHOPE]  Alkim, E., Ducas, L., Poeppelmann, T., Schwabe, P.,
-              "Post-quantum key exchange - a new hope",
-              Cryptology ePrint Archive, Report 2015/1092, 2015,
-              <https://eprint.iacr.org/2015/1092>.
+.. [KYBER]  Avanzi, E., Bos, J., Ducas, L., Kiltz, E., Lepoint, T.,
+            Lyubashevsky, V., Schanck, J., Schwabe, P., Seiler, G., Stehlé, D., 
+            "CRYSTALS-Kyber: Algorithm Specifications And Supporting Documentation",
+            Submission to the NIST post-quantum project. 2017,
+            <https://pq-crystals.org/kyber/data/kyber-specification.pdf>.
 
-.. [NHSIMPLE] Alkim, E., Ducas, L., Poeppelmann, T., Schwabe, P.,
-              "NewHope without reconciliation",
-              Cryptology ePrint Archive, Report 2016/1157, 2016,
-              <https://eprint.iacr.org/2016/1157>.
+.. [KYBERCCA] Bos, J., Ducas†, L., Kiltz, E., Lepoint, T., Lyubashevsky, V.,
+              Schanckk, J., Schwabe, P., Seiler, G., Stehlé, D.,
+              "CRYSTALS – Kyber: a CCA-secure module-lattice-based KEM",
+              IEEE European Symposium on Security and Privacy, EuroS&P, 2018,
+              <https://pq-crystals.org/kyber/data/kyber-20180716.pdf>.
 
 .. [RFC7748]  Langley, A., Hamburg, M., and S. Turner, "Elliptic Curves
               for Security", RFC 7748,
@@ -344,7 +340,11 @@ Appendix A.1 Normative References
 
 .. [NOISEHFS] Weatherley, R., "Noise Extension: Hybrid Forward Secrecy",
               1draft-5, June 2017,
-              <https://github.com/noiseprotocol/noise_spec/blob/41d478d3dd97d77a6695f4d6cf6283e2830e9ca6/extensions/ext_hybrid_forward_secrecy.md>
+              <https://github.com/noiseprotocol/noise_spec/blob/41d478d3dd97d77a6695f4d6cf6283e2830e9ca6/extensions/ext_hybrid_forward_secrecy.md>.
+
+.. [NOISEHFSKYBER] Weatherley, R., "Noise Extension: Hybrid Forward Secrecy with Kyber",
+              1draft, July 2017,
+              <https://raw.githubusercontent.com/rweather/noise_spec/kyber/extensions/ext_kyber.md>.
 
 Appendix A.2 Informative References
 -----------------------------------
