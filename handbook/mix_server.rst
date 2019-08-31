@@ -221,6 +221,10 @@ to deviate from the defaults.
 
 The top-level Provider configuration parameters include:
 
+* ``EnableNoAuthClients`` is set to ``true`` then the Provider will
+  allow clients to connect even if their public X25519 key is not
+  present in the user database.
+
 * ``EnableUserRegistrationHTTP`` if set to ``true`` then the HTTP
   registration service will be enabled and the
   ``UserRegistrationHTTPAddresses`` option must also be set.
