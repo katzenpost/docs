@@ -130,7 +130,8 @@ Add :term:`User`\s to the :term:`Provider` using the management interface:
 .. code:: console
 
     socat unix:/<path-to-data-dir>/management_sock STDOUT
-    ADD_USER alice X25519_public_key_in_hex_or_base64
+    ADD_USER alice X25519_link_public_key_in_hex_or_base64
+    SET_USER_IDENTITY alice X25519_identity_public_key_in_hex_or_base64
 
 Run the Authority
 =================
