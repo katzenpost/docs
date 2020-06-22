@@ -125,13 +125,13 @@ FIXME: is the error message necessary here? so far it is unused.
 
 * Katzenpost client to katzenpost server
 
-  * fetch(spool_id, last_message_id, SURBs)
+  - fetch(spool_id, last_message_id, SURBs)
 
 FIXME: does this need an app_id also?
 
 * Katzenpost server to katzenpost client:
 
-  * new_messages(spool_id, app_messages)
+  - new_messages(spool_id, app_messages)
 
 FIXME: perhaps this needs a signature or some other assurance of authenticity?
 
@@ -152,6 +152,10 @@ client applications to terminate subscriptions without closing their
 UNIX domain socket connection, but for the sake of simplicity there is
 not yet a client-side unsubscribe message specified.)
 
+FIXME: I think we can assume that the client side will initially only
+have a Golang API and NOT a unix domain socket plugin system which would
+be more work to implement.
+
 The katzenpost client maintains a list of subscription IDs for each
 spool ID for which there is one or more active subscriptions.
 
@@ -159,6 +163,10 @@ For the duration of the subscription, the katzenpost client will send
 fetch(spool_id, last_message_id, SURBs) messages via the mixnet to the
 remote provider where the server application is running, on a schedule
 described in the Fetch Schedule section below.
+
+FIXME: This fetch API function doesn't make sense to me. Firstly it
+isn't really fetching... it's refreshing the subscription SURBs.
+Secondly, it needs an subscription ID argument.
 
 The katzenpost server (the provider where the server application is
 running) will maintain a subscription table which maps server-side
@@ -175,8 +183,19 @@ having ended). When the SURBs are exhausted or expired, the katzenpost
 server terminates the subscription by sending an
 unsubscribe(subscription_id) message to the server application.
 
+FIXME: The server-side has no way of knowing when the SURBs expire
+and the above statement seems to be indicating that the server would
+somehow know this information whereas only the client can know the
+expiration of the SURBs.
+
 For each spool, the server application maintains a list of current
 subscription IDs.
+
+FIXME: Some applications may not make a given "spool" available to
+more than one client. Not all uses of this API will necessarily
+map cleanly to the concept of a spool in so far as the internal
+datastructures within the application itself may not resemble
+a spool whatsoever.
 
 Upon receiving a subscribe(subscription_id, spool_id, last_message_id)
 message, the server application adds the subscription ID to that
@@ -186,11 +205,22 @@ katzenpost server a new_messages(subscription_id, app_messages)
 message containing all of the messages that came after
 last_message_id.
 
+FIXME: Surely this is wrong because the server needs to receive
+a "recipient" or "service-name" and calling this a spool_id is
+not correct in so far as there may be certain applications wishing
+to provide multiple spools and therefore the "service-name" will
+not be sufficient to specify the precise spool.
+
 Later, when new messages are written to a spool (note: how this
 happens is currently outside the scope of this document), for each
 current subscription to the spool, the server application will send to
 the katzenpost server new_messages(subscription_id, app_messages)
 messages containing the new messages.
+
+FIXME: This wording is misleading because not all applications using
+this pubsub mechanism will have a need to write into a spool-like
+datastructure. Consider a mixnet service that simply gives the time
+of day every hour or so. Or generates a random number and so on.
 
 When the server application receives an unsubscribe(subscription_id)
 message, it removes that subscription ID from the list of
@@ -220,6 +250,9 @@ For now lets just say that new fetch messages should be sent whenever
 the time since the last new_messages message received exceeds some
 threshold which is a function of the number of outstanding SURBs sent
 in previous fetch messages for a given client-side subscription.
+
+FIXME: Only the client is aware when one or more SURBs have expired
+and therefore can use this information to schedule the next "fetch".
 
 8. TODO
 =======
