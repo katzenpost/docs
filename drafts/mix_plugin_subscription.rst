@@ -79,11 +79,13 @@ either there is a SURB present or there is NOT a SURB present.
 The New Sphinx Payload Format
 -----------------------------
 
-type SphinxPayload struct {
-    SURBCount byte
-    Reserved byte
-    Plaintext []byte
-}
+::
+
+  type SphinxPayload struct {
+      SURBCount byte
+      Reserved byte
+      Plaintext []byte
+  }
 
 4. CBOR messages sent between katzenpost and application plugins via UNIX domain socket
 =======================================================================================
