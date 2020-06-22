@@ -52,7 +52,7 @@ document are to be interpreted as described in [RFC2119]_.
 In the previous Katzenpost plugin system, server plugins communicated
 with the mixnet server using HTTP over unix domain sockets. This
 approach was chosen to simplify implementation, but it is no longer
-appropriate in the sublish subscribe model as it would require
+appropriate in the publish subscribe model as it would require
 polling.
 
 The new wire protocol between plugins and the mix server shall make
@@ -127,8 +127,6 @@ Subscription IDs on the server side are chosen by the katzenpost server, and are
   - new_messages(subscription_id, app_messages)
   - error(subscription_id, error_type)
 
-FIXME: is the error command necessary here? so far it is unused.
-
 5. Mixnet commands sent between katzenpost client and server
 ============================================================
 
@@ -180,11 +178,6 @@ having ended). When the SURBs are exhausted or expired, the katzenpost
 server terminates the subscription by sending an
 unsubscribe(subscription_id) message to the server application.
 
-FIXME: The server-side has no way of knowing when the SURBs expire
-and the above statement seems to be indicating that the server would
-somehow know this information whereas only the client can know the
-expiration of the SURBs.
-
 For each spool, the server application maintains a list of current
 subscription IDs.
 
@@ -230,9 +223,6 @@ For now lets just say that new fetch messages should be sent whenever
 the time since the last new_messages message received exceeds some
 threshold which is a function of the number of outstanding SURBs sent
 in previous fetch messages for a given client-side subscription.
-
-FIXME: Only the client is aware when one or more SURBs have expired
-and therefore can use this information to schedule the next "fetch".
 
 8. TODO
 =======
