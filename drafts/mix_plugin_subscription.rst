@@ -1,6 +1,7 @@
 Katzenpost Mix Plugin PubSub Specification
 ******************************************
 
+| Leif Ryge
 | David Stainton
 
 | Version 0
@@ -87,13 +88,19 @@ The New Sphinx Payload Format
       Plaintext []byte
   }
 
-4. CBOR messages sent between katzenpost and application plugins via UNIX domain socket
-=======================================================================================
+4. Coammnds sent between katzenpost and application plugins
+===========================================================
+
+On the server side, these commands are to be sent in CBOR messages
+over a UNIX domain socket. On the client side, that may be the case in
+the future, but for now we're assuming applications will run in the
+same process as the katzenpost client so regular function calls are
+used instead.
 
 Client-side
 -----------
 
-Subscription IDs on this side are chosen by the client application and
+Subscription IDs on the client side are chosen by the client application and
 are long-lived.
 
 * Client application sends to katzenpost client:
@@ -108,7 +115,7 @@ are long-lived.
 Server-side
 -----------
 
-Subscription IDs on this side are chosen by the katzenpost server, and are short-lived.
+Subscription IDs on the server side are chosen by the katzenpost server, and are short-lived.
 
 * Katzenpost server sends to server application:
 
@@ -120,61 +127,49 @@ Subscription IDs on this side are chosen by the katzenpost server, and are short
   - new_messages(subscription_id, app_messages)
   - error(subscription_id, error_type)
 
-FIXME: is the error message necessary here? so far it is unused.
+FIXME: is the error command necessary here? so far it is unused.
 
-5. Mixnet messages sent between katzenpost client and server
+5. Mixnet commands sent between katzenpost client and server
 ============================================================
+
+These commands are sent between the katzenpost client and server (aka
+Provider) via mixnet messages.
 
 * Katzenpost client to katzenpost server
 
   - fetch(spool_id, last_message_id, SURBs)
 
-FIXME: does this need an app_id also?
-
 * Katzenpost server to katzenpost client:
 
   - new_messages(spool_id, app_messages)
 
-FIXME: perhaps this needs a signature or some other assurance of authenticity?
+Note that this does NOT need a signature or some other assurance of
+authenticity if the application is hosted on the remote Provider
+because the Sphinx packet format ensures authenticty.
 
 6. Protocol Flow
 ================
 
 A client application establishes a subscription by generating a random
-subscription ID and sending the katzenpost client a
+subscription ID and sending via the katzenpost client a
 subscribe(server_address, subscription_id, spool_id, last_message_id)
-message describing the spool which the application would like to
+command describing the spool which the application would like to
 subscribe to.
-
-The client-side subscription will remain active until the unix domain
-socket connection between the client application and the katzenpost
-client is terminated, a state which indicates that one of the
-processes has terminated. (FIXME: we might want to add the ability for
-client applications to terminate subscriptions without closing their
-UNIX domain socket connection, but for the sake of simplicity there is
-not yet a client-side unsubscribe message specified.)
-
-FIXME: I think we can assume that the client side will initially only
-have a Golang API and NOT a unix domain socket plugin system which would
-be more work to implement.
 
 The katzenpost client maintains a list of subscription IDs for each
 spool ID for which there is one or more active subscriptions.
 
 For the duration of the subscription, the katzenpost client will send
-fetch(spool_id, last_message_id, SURBs) messages via the mixnet to the
-remote provider where the server application is running, on a schedule
-described in the Fetch Schedule section below.
+fetch(spool_id, last_message_id, SURBs) commands via mixnet messages
+addressed to the server application to the remote Provider where the
+server application is running, on a schedule described in the Fetch
+Schedule section below.
 
-FIXME: This fetch API function doesn't make sense to me. Firstly it
-isn't really fetching... it's refreshing the subscription SURBs.
-Secondly, it needs an subscription ID argument.
-
-The katzenpost server (the provider where the server application is
+The katzenpost server (the Provider where the server application is
 running) will maintain a subscription table which maps server-side
 subscription IDs to lists of SURBs.
 
-Upon receiving of a fetch message, the katzenpost server will generate
+Upon receiving a fetch message, the katzenpost server will generate
 a new subscription ID, store the list of SURBs in its subscription
 table, and send a subscribe(subscription_id, spool_id,
 last_message_id) message to the server application.
@@ -193,12 +188,6 @@ expiration of the SURBs.
 For each spool, the server application maintains a list of current
 subscription IDs.
 
-FIXME: Some applications may not make a given "spool" available to
-more than one client. Not all uses of this API will necessarily
-map cleanly to the concept of a spool in so far as the internal
-datastructures within the application itself may not resemble
-a spool whatsoever.
-
 Upon receiving a subscribe(subscription_id, spool_id, last_message_id)
 message, the server application adds the subscription ID to that
 spool's list of subscriptions. If the spool contains any messages
@@ -207,22 +196,11 @@ katzenpost server a new_messages(subscription_id, app_messages)
 message containing all of the messages that came after
 last_message_id.
 
-FIXME: Surely this is wrong because the server needs to receive
-a "recipient" or "service-name" and calling this a spool_id is
-not correct in so far as there may be certain applications wishing
-to provide multiple spools and therefore the "service-name" will
-not be sufficient to specify the precise spool.
-
 Later, when new messages are written to a spool (note: how this
 happens is currently outside the scope of this document), for each
 current subscription to the spool, the server application will send to
 the katzenpost server new_messages(subscription_id, app_messages)
 messages containing the new messages.
-
-FIXME: This wording is misleading because not all applications using
-this pubsub mechanism will have a need to write into a spool-like
-datastructure. Consider a mixnet service that simply gives the time
-of day every hour or so. Or generates a random number and so on.
 
 When the server application receives an unsubscribe(subscription_id)
 message, it removes that subscription ID from the list of
@@ -280,7 +258,12 @@ there, though :)
   it detects holes in the sequence and perhaps to retain out-of-order
   messages until it is able to deliver the messages to the client
   application in order? And then we might want some kind of selective
-  ACK in place of our last_message_id...
+  ACK in place of our last_message_id... BUT for now, the easy way to
+  make it reliable (but not efficient at all) is to say that the
+  client fetch messages don't ACK the actual last message they saw but
+  rather ACK the last contiguous message (and the app message IDs need
+  to be sequential numbers so that the client can infer when there is
+  one missing).
 
 Appendix A. References
 ======================
