@@ -8,11 +8,11 @@ Katzenpost Mix Plugin PubSub Specification
 
 .. rubric:: Abstract
 
-This document describe a new plugin system for the Katzenpost
-Mix Server which makes use of a SURB based publish subscribe protocol
-allowing plugins to send clients messages without the strict request
-response protocol dialogue previously used in the Kaetzchen plugin system.
-[KAETZCHEN]_
+This document describe a new plugin system for the Katzenpost Mix
+Server which makes use of a SURB based publish subscribe protocol
+allowing application plugins to send clients messages without the
+strict request response protocol dialogue previously used in the
+Kaetzchen plugin system.  [KAETZCHEN]_
 
 .. contents:: :local:
 
@@ -46,10 +46,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
 document are to be interpreted as described in [RFC2119]_.
 
-Datastructures in this document are expressed in the Go programming language.
-
-FIXME: get rid of silly function signatures and replace with Go.
-
+Code examples in this document are expressed in the Go programming language.
 
 2. Overview
 ===========
@@ -69,23 +66,6 @@ HTTP.
 3. Sphinx Packet Format Considerations
 ======================================
 
-In addition to the recipient command we shall make use of an additional command
-called: "subscribe". This "subscribe" Sphinx command will encapsulate the
-client's subscription identifier for the purpose of linking the bundled SURBs
-for future use by the application plugin. The presence of the "subscribe" command
-will indicate to the Provider that the Sphinx packet payload is to be parsed
-differently with the new format expounded upon below.
-
-Let the "subscribe" command be defined as follows::
-
-      const SubscriptionIdLength  = 16
-      const surbReply   commandID = 0x81
-
-      type SubscribeCommand struct {
-          SubscriptionId byte[SubscriptionIdLength]
-      }
-
-
 Previous Sphinx Payload Format
 ------------------------------
 
@@ -102,106 +82,96 @@ either there is a SURB present or there is NOT a SURB present.
 The New Sphinx Payload Format
 -----------------------------
 
-The following new Sphinx packet payload format is only used
-if the "subscribe" command is present::
+The following new Sphinx packet payload format is as follows::
 
   type SphinxPayload struct {
       SURBCount byte
-      Reserved byte
+      Reserved  byte
+      SURBs     []byte
       Plaintext []byte
   }
 
+4. Katzenpost Client Library Considerations
+===========================================
 
-The SURBCount field MUST be 1 or greater. If SURBCount is 0 then the
-packet will be dropped without further processing.
+The interaction between client application and client library results
+in a single Sphinx packet being sent to provider_name with recipient
+service_name. That is to say, the last Sphinx hop contains a recipient
+command specifying the application plugin service name.  Additionally
+the payload of this Sphinx packet being sent to this application
+plugin is described below in section 5.
 
-4. Commands sent between katzenpost and application plugins
-===========================================================
+The above described Subscribe function results in the following struct
+being serialized as a CBOR byte blob and encapsulated in a Sphinx
+packet and sent to the destination application plugin::
 
-On the server side, these commands are to be sent in CBOR messages
-over a UNIX domain socket. On the client side, that may be the case in
-the future, but for now we're assuming applications will run in the
-same process as the katzenpost client so regular function calls are
-used instead. The following describes the API abstractions and NOT
-specific serialized commands.
+  type FetchCommand struct {
+      SpoolId       []byte
+      LastMessageId []byte
+  }
 
-Client-side
------------
+However the encapsulating Sphinx packet MUST bundle multiple SURBs
+within the packet payload in order to allow this publish subscribe
+mechanism to work properly. These SURBs is what allows the anonymous
+replies to be sent back to the client from the destination
+Provider/plugin.
 
-Subscription IDs on the client side are chosen by the client application and
-are long-lived.
+We speculate that this entire interaction could be triggered by a
+single function call such as::
 
-* Client application interacts with katzenpost client library:
+  func Fetch(providerName, serviceName string, spoolId, lastMessageId []byte, SURBs [][]byte)
 
-  - subscribe(provider_name, service_name, client_subscription_id, spool_id, last_app_message_id)
+Katzenpost client library interacts with client application by way of
+an events channel where the application receives various kinds of
+events. SURB reply messages are included in set of events reported by
+this events channel. The SURB reply event type encapsulates a message
+identity which can be used by the client application to link the reply
+message with a specific subscription::
 
-Note that this interaction between client application and client library results in a single
-Sphinx packet being sent to provider_name with recipient service_name. That is to say, the
-last Sphinx hop contains a recipient command specifying the application plugin service name.
-In addition to that the subscription command will also be present and encapsulate the
-client_subscription_id. Additionally the payload of this Sphinx packet being sent to
-this application plugin is described below in section 5.
+  // MessageReplyEvent is the event sent when a new message is received.
+  type MessageReplyEvent struct {
+	// MessageID is the unique identifier for the request associated with the
+	// reply.
+	MessageID *[cConstants.MessageIDLength]byte
 
-* Katzenpost client library interacts with client application:
+	// Payload is the reply payload if any.
+	Payload []byte
 
-  - new_messages(client_subscription_id, app_messages)
-  - error(subscription_id, error_type)
+	// Err is the error encountered when servicing the request if any.
+	Err error
+  }
+
+5. Server-side Considerations
+=============================
+
+When the server receives a Sphinx packet destined for a recipient
+registered as a plugin then a subscription IDs is generated on the
+server a linked with the SURBs bundled in the packet payload. This
+subscription ID is short lived and expires when the SURBs are inferred
+to expired or when all the SURBs are used up.
+
+* Katzenpost server sends to server application plugin::
+
+  func Subscribe(serverSubscriptionId, spoolId, lastMessageId []byte)
+
+  func Unsubscribe(serverSubscriptionId []byte)
 
 
-Server-side
------------
+* Server application plugin sends to katzenpost server::
 
-Subscription IDs on the server side are chosen by the katzenpost server, and are short-lived.
+  func NewMessages(serverSubscriptionId []byte, app_messages [][]byte)
 
-* Katzenpost server sends to server application plugin:
-
-  - subscribe(server_subscription_id, spool_id, last_message_id)
-  - unsubscribe(server_subscription_id)
-
-* Server application plugin sends to katzenpost server:
-
-  - new_messages(server_subscription_id, app_messages)
-  - error(subscription_id, error_type)
-
-5. Mixnet commands sent between katzenpost client and server
-============================================================
-
-These commands are serialized and sent between the katzenpost client and server (aka
-Provider) via Sphinx packet encapsulation.
-
-* Katzenpost client to katzenpost server
-
-  - fetch(spool_id, last_message_id, SURBs)
-
-Note the client's fetch message to the server application plugin
-is encapsulated in a Sphinx packet whose last hop would contain the "subscribe"
-command defined above, encapsulating the subscription identifier as described
-above in section 4. The fetch command is serialized into the Sphinx packet
-payload.
-
-* Katzenpost server to katzenpost client:
-
-  - new_messages(spool_id, app_messages)
-
-Note that this does NOT need a signature or some other assurance of
-authenticity if the application is hosted on the remote Provider
-because the Sphinx packet format ensures authenticty.
+  func SubscriptionError(errorMessage error)
 
 6. Protocol Flow
 ================
 
-A client application establishes a subscription by generating a random
-client_subscription_id and sending it via the katzenpost client interaction.
-The following function signature represents a high level API abstraction
-which client applications can make use of::
+The katzenpost client maintains a list of message IDs for each
+SURB it sends to a given spool service. Thus when the client receives
+a MessageReply encapsulating a message ID from the events channel it
+can link these reply messages to a given subscription to a remote spool.
 
-    subscribe(provider_name, service_name, client_subscription_id, spool_id, last_message_id)
-
-Note: the client_subscription_id is only used by the receiving application plugin.
-
-The katzenpost client maintains a list of subscription IDs for each
-spool ID for which there is one or more active subscriptions.
-
+FIXME: rewrite this whole section
 FIXME: should spool IDs be universally unique?
 
 For the duration of the subscription, the katzenpost client will send
