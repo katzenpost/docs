@@ -97,29 +97,29 @@ The following new Sphinx packet payload format is as follows::
 The interaction between client application and client library results
 in a single Sphinx packet being sent to provider_name with recipient
 service_name. That is to say, the last Sphinx hop contains a recipient
-command specifying the application plugin service name.  Additionally
+command specifying the application plugin service name. Additionally
 the payload of this Sphinx packet being sent to this application
 plugin is described below in section 5.
 
-The above described Subscribe function results in the following struct
-being serialized as a CBOR byte blob and encapsulated in a Sphinx
-packet and sent to the destination application plugin::
+The following struct is serialized as a CBOR byte blob and
+encapsulated in a Sphinx packet and sent to the destination
+application plugin::
 
   type FetchCommand struct {
-      SpoolId       []byte
-      LastMessageId []byte
+      SpoolId        [8]byte
+      LastSpoolIndex [8]byte
   }
 
 However the encapsulating Sphinx packet MUST bundle multiple SURBs
 within the packet payload in order to allow this publish subscribe
-mechanism to work properly. These SURBs is what allows the anonymous
+mechanism to work properly. These SURBs are what allows the anonymous
 replies to be sent back to the client from the destination
-Provider/plugin.
+Provider and application plugin.
 
 We speculate that this entire interaction could be triggered by a
-single function call such as::
+single function call on the Katzenpost client, such as::
 
-  func Fetch(providerName, serviceName string, spoolId, lastMessageId []byte, SURBs [][]byte)
+  func Fetch(providerName, serviceName string, spoolId, lastSpoolIndex []byte, SURBs [][]byte)
 
 Katzenpost client library interacts with client application by way of
 an events channel where the application receives various kinds of
@@ -141,6 +141,26 @@ message with a specific subscription::
 	Err error
   }
 
+The payload portion of MessageReplyEvent obviously must contain a CBOR
+object which encodes one or more messages and their spool index. However
+the spool identity and the application identity is not needed since SURBs
+are linked to their context via the SURB identity and in this case the
+message identity is used for this purpose. Therefore the MessageReplyEvent
+payload shall contain the follow struct type encoded as a CBOR binary blob::
+
+  type NewMessages struct {
+    Messages []SpoolMessage
+  }
+
+  type SpoolMessage struct {
+    Index uint64
+    Payload []byte
+  }
+
+FIXME: it doesn't have to be encoded as CBOR. We can easily make this
+efficiently into a byte blob ourselves. Why use CBOR? Seems silly.
+Over-engineering/over-kill.
+
 5. Server-side Considerations
 =============================
 
@@ -152,106 +172,77 @@ to expired or when all the SURBs are used up.
 
 * Katzenpost server sends to server application plugin::
 
-  func Subscribe(serverSubscriptionId, spoolId, lastMessageId []byte)
+  func Subscribe(serverSubscriptionId, spoolId, lastSpoolIndex uint64)
 
   func Unsubscribe(serverSubscriptionId []byte)
 
 
 * Server application plugin sends to katzenpost server::
 
-  func NewMessages(serverSubscriptionId []byte, app_messages [][]byte)
+  func NewMessages(serverSubscriptionId []byte, appMessages [][]byte)
 
   func SubscriptionError(errorMessage error)
 
 6. Protocol Flow
 ================
 
-The katzenpost client maintains a list of message IDs for each
-SURB it sends to a given spool service. Thus when the client receives
-a MessageReply encapsulating a message ID from the events channel it
-can link these reply messages to a given subscription to a remote spool.
-
-FIXME: rewrite this whole section
-FIXME: should spool IDs be universally unique?
-
 For the duration of the subscription, the katzenpost client will send
-fetch(spool_id, last_message_id, SURBs) commands via mixnet messages
+fetch(spool_id, last_spool_index, SURBs) commands via mixnet messages
 addressed to the server application to the remote Provider where the
-server application is running, on a schedule described in the Fetch
+server application plugin is running, on a schedule described in the Fetch
 Schedule section below. This fetch message is encapsulated in a Sphinx
 packet whose destination is specified as a Provider name and a service
 name which addresses the specific application plugin.
 
 The katzenpost server (the Provider where the application plugin is
 running) will maintain a subscription table which maps server-side
-subscription IDs to lists of SURBs.
-
-Upon receiving a fetch message, the katzenpost server will generate
-a new subscription ID, store the list of SURBs in its subscription
-table, and send a subscribe(subscription_id, spool_id, last_message_id)
-message to the server application plugin.
+subscription IDs to lists of SURBs. Upon receiving a fetch message,
+the katzenpost server will generate a new subscription ID, store the
+list of SURBs in its subscription table, and send a
+subscribe(subscription_id, spool_id, last_message_id) message to the
+server application plugin.
 
 The server-side subscription lasts until the list of SURBs is
 exhausted, or the SURBs have expired (due to the mixnet's PKI epoch
 having ended). When the SURBs are exhausted or expired, the katzenpost
 server terminates the subscription by sending an
 unsubscribe(subscription_id) message to the server application plugin.
+For each spool, the server application plugin maintains a list of
+current serverSubscriptionId.
 
-For each spool, the server application plugin maintains a list of current
-server_subscription_id.
-
-Upon receiving a subscribe(client_subscription_id, spool_id, last_message_id)
-message, the server application plugin adds the client_subscription_id to that
+Upon receiving a subscribe(serverSubscriptionId, spoolId, lastSpoolIndex)
+message, the server application plugin adds the serverSubscriptionId to that
 spool's list of subscriptions. If the spool contains any messages
-which came after last_message_id, the server applications sends the
-katzenpost server a new_messages(subscription_id, app_messages)
+which came after lastSpoolIndex, the server applications sends the
+katzenpost server a NewMessages(serverSubscriptionId, appMessages)
 message containing all of the messages that came after
-last_message_id.
+lastSpoolIndex.
 
 Later, when new messages are written to a spool (note: how this
 happens is currently outside the scope of this document), for each
 current subscription to the spool, the server application plugin will send to
-the katzenpost server new_messages(subscription_id, app_messages)
+the katzenpost server NewMessages(serverSubscriptionId, appMessages)
 messages containing the new messages.
 
-FIXME: How will the app plugin know how to limit the number of app_messages?
-What if there aren't enough SURBs to see all the app_messages?
-Should the first iteration of this design simply limit the app plugin to
-sending one Sphinx payload worth of app_messages?
-
-When the server application plugin receives an unsubscribe(client_subscription_id)
-message, it removes that client subscription ID from the list of
+When the server application plugin receives an Unsubscribe(serverSubscriptionId)
+message, it removes that server subscription ID from the list of
 subscriptions for the spool which contains it in its list of current
-subscriptions. (implementation detail: the server application probably
-wants to maintain a table mapping client_subscription_id to spool_id to make
+subscriptions. (implementation detail: the server application plugin probably
+wants to maintain a table mapping serverSubscriptionId to spoolId to make
 this efficient.)
 
-When the katzenpost server receives a new_messages(server_subscription_id,
-app_messages) message from the server application plugin, it looks in its
-subscription table and finds the next SURB for that server_subscription_id
-and uses the SURB to send a new_messages(spool_id, app_messages)
+When the katzenpost server receives a NewMessages(serverSubscriptionId, appMessages)
+message from the server application plugin, it looks in its
+subscription table and finds the next SURB for that serverSubscriptionId
+and uses the SURB to send a NewMessages(appMessages)
 mixnet message containing as many of the application messages as will
 fit in a mixnet message. While there are more messages and more SURBs
-remaining, it will send more new_messages mixnet messages.
+remaining, it will send more NewMessages mixnet messages.
 
-FIXME: Why does the new_messages need to encapsulate a spool_id?
-The client already has the context for each SURB it sent and so
-each of the corresponding SURB replies evoke that context by way
-of the Sphinx SURBReply Command's id field.
-In Katzenpost Providers are prepared to receive Sphinx packets
-which will potentially have a recipient command AND a SURB reply command
-encapsulating a SURB identifier.
-
-When the katzenpost client receives a new_messages(client_spool_id, app_messages)
-message via the mixnet, it consults its list of
-spools-to-subscription-IDs and for each subscription to that spool it
-sends a new_messages(client_subscription_id, app_messages) message to the
-client application.
-
-FIXME: This design as you have written it requires the spool_id to be unique
-instead of local to the specific application plugin. This is an unnecessary
-constraint. Whereas instead a three tuple could be used (provider, service, spool_id).
-Why not use this three tuple? Why do we want spool IDs to be universally unique?
+The katzenpost client maintains a list of message IDs for each
+SURB it sends to a given spool service. Thus when the client receives
+a MessageReply encapsulating a message ID from the events channel it
+can link these reply messages to a given subscription to a remote spool.
 
 7. Fetch Schedule
 =================
