@@ -97,9 +97,7 @@ The following new Sphinx packet payload format is as follows::
 The interaction between client application and client library results
 in a single Sphinx packet being sent to provider_name with recipient
 service_name. That is to say, the last Sphinx hop contains a recipient
-command specifying the application plugin service name. Additionally
-the payload of this Sphinx packet being sent to this application
-plugin is described below in section 5.
+command specifying the application plugin service name.
 
 The following struct is serialized as a CBOR byte blob and
 encapsulated in a Sphinx packet and sent to the destination
@@ -123,7 +121,7 @@ single function call on the Katzenpost client, such as::
 
 Katzenpost client library interacts with client application by way of
 an events channel where the application receives various kinds of
-events. SURB reply messages are included in set of events reported by
+events. SURB reply messages are included in the set of events reported by
 this events channel. The SURB reply event type encapsulates a message
 identity which can be used by the client application to link the reply
 message with a specific subscription::
@@ -157,10 +155,6 @@ payload shall contain the follow struct type encoded as a CBOR binary blob::
     Payload []byte
   }
 
-FIXME: it doesn't have to be encoded as CBOR. We can easily make this
-efficiently into a byte blob ourselves. Why use CBOR? Seems silly.
-Over-engineering/over-kill.
-
 5. Server-side Considerations
 =============================
 
@@ -183,6 +177,9 @@ to expired or when all the SURBs are used up.
 
   func SubscriptionError(errorMessage error)
 
+FIXME: The above functions should actually be represented by struct types
+serialized into CBOR.
+  
 6. Protocol Flow
 ================
 
@@ -322,7 +319,7 @@ as described in a document called "How to Use the IEEEtran BIBTEX Style".
 
    @online{KatzenPubSub,
    title = {Katzenpost Mix Plugin PubSub Specification},
-   author = {David Stainton},
+   author = {Leif Ryge and David Stainton},
    url = {FIXME},
    year = {2020}
    }
