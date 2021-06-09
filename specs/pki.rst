@@ -219,13 +219,13 @@ Katzenpost Mix Network Public Key Infrastructure Specification
 
    ``T``                         - Epoch begins
 
-   ``T + P/2``                   - Vote exchange
+   ``T + P/4``                   - Vote exchange
 
-   ``T + (5/8)*P``               - Reveal exchange
+   ``T + (3/8)*P``               - Reveal exchange
 
-   ``T + (6/8)*P``               - Tabulation and signature exchange
+   ``T + (4/8)*P``               - Tabulation and signature exchange
 
-   ``T + (7/8)*P``               - Publish consensus
+   ``T + (5/8)*P``               - Publish consensus
 
 
 2.1.2 Mix Schedule
@@ -234,14 +234,14 @@ Katzenpost Mix Network Public Key Infrastructure Specification
    Mix PKI interactions are conducted according to the following
    schedule, where T is the beginning of the current epoch.
 
-    ``T + P/2``            - Deadline for publication of all mixes documents
+    ``T + P/4``            - Deadline for publication of all mixes documents
                                for the next epoch.
 
-    ``T + (7/8)*P``        - This marks the beginning of the period
+    ``T + (5/8)*P``        - This marks the beginning of the period
                                where mixes perform staggered fetches
                                of the PKI consensus document.
 
-    ``T + (8/9)*P``        - Start establishing connections to the new set of
+    ``T + (7/8)*P``        - Start establishing connections to the new set of
                                relevant mixes in advance of the next epoch.
 
     ``T + P - 1MSL``       - Start accepting new Sphinx packets encrypted to
