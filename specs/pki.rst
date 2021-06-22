@@ -4,9 +4,11 @@ Katzenpost Mix Network Public Key Infrastructure Specification
 **************************************************************
 |
 | Yawning Angel
+| Sofía Celi
 | Claudia Diaz
 | Ania Piotrowska
 | David Stainton
+| Masala
 |
 | Version 0
 |
@@ -975,7 +977,7 @@ as described in a document called "How to Use the IEEEtran BIBTEX Style".
 
    @online{KatzMixPKI,
    title = {Katzenpost Mix Network Public Key Infrastructure Specification},
-   author = {Yawning Angel and Ania Piotrowska and David Stainton},
+   author = {Yawning Angel and Sofía Celi and Claudia Diaz and Ania Piotrowska and David Stainton and Masala},
    url= {https://github.com/katzenpost/docs/blob/master/specs/pki.rst},
-   year = {2017}
+   year = {2021}
    }
